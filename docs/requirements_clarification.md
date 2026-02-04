@@ -9,10 +9,25 @@ This assignment requires building a **REST API using .NET** that helps users fin
 - **District Coordinates**: JSON file containing latitude/longitude for all 64 Bangladesh districts ([source](https://raw.githubusercontent.com/strativ-dev/technical-screening-test/main/bd-districts.json))
 - **Open-Meteo API**: Weather forecasts (temperature) and Air Quality data (PM2.5)
 
-**Two Core Endpoints:**
+### Core APIs (functional requirements)
 
-1. **Top 10 Coolest & Cleanest Districts** - Ranked by average 2 PM temperature, tie-broken by PM2.5
-2. **Travel Recommendation** - Compares user's location with destination, returns "Recommended" or "Not Recommended"
+1) **Top 10 Coolest & Cleanest Districts**
+
+- Use district lat/long.
+- Fetch forecast **for next 7 days**.
+- Compute **average temperature at 2 PM** across those 7 days.
+- Fetch **PM2.5** and use it as the air quality metric.
+- Rank by **coolest temperature first**, and **break ties by lower PM2.5**.
+- Return **top 10** districts.
+- Response time must be **≤ 500 ms**.
+
+2) **Travel Recommendation**
+
+- Input: current location (lat/long), destination district, travel date.
+- Compare **2 PM temperature** on the travel date for both locations.
+- Compare **PM2.5** on the travel date for both locations.
+- If destination is **cooler** and **cleaner**, return **"Recommended"**; else **"Not Recommended"**.
+- Include a short, human‑readable reason.
 
 ---
 
@@ -22,13 +37,13 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 **Clarification Point:** The requirement states response time must not exceed 500ms. However, fetching weather and air quality data for all 64 districts via HTTP requests during a single user request will inevitably exceed 500ms and hit rate limits.
 
-**Assumption:** Implement a **Background Service (Worker) pattern**. Pre-fetch data for all districts periodically (e.g., every 1-4 hours) and store processed averages in an in-memory cache (`IMemoryCache`). The API endpoint will read from this "hot" cache.
+**Assumption:** Implement a **Background Service (Worker) pattern**. Pre-fetch data for all districts periodically (e.g., every **10 minutes**) and store processed averages in a **distributed cache (Redis)** for scalability and persistence. If a simpler solution is required, an **in-memory cache (`IMemoryCache`)** can be used as a fallback. The API endpoint will read from this "hot" cache.
 
 **Impact:**
 
 - Eliminates latency during user requests
 - Requires implementing `IHostedService` in .NET
-- Requires a thread-safe caching strategy
+- Requires a thread-safe caching strategy (Redis or Memory)
 
 ---
 
@@ -98,17 +113,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 ---
 
-### 2.8 Travel Date Validation
-
-**Clarification Point:** What if the user provides a travel date beyond the 7-day forecast range?
-
-**Assumption:** Return a **400 Bad Request** with message: "Travel date must be within the next 7 days."
-
-**Impact:** Prevents inaccurate recommendations based on unavailable forecast data.
-
----
-
-### 2.9 API Versioning
+### 2.8 API Versioning
 
 **Clarification Point:** No versioning strategy mentioned in requirements.
 
@@ -118,7 +123,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 ---
 
-### 2.10 Error Handling for External API Failures
+### 2.9 Error Handling for External API Failures
 
 **Clarification Point:** What happens if Open-Meteo API is unavailable during background sync?
 
@@ -135,7 +140,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 | Aspect                         | Decision                                                                                           |
 | ------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **Caching Strategy**     | Background worker (`IHostedService`) refreshes every 1-4 hours; API serves from `IMemoryCache` |
+| **Caching Strategy**     | Background worker (`IHostedService`) refreshes every 10 minutes; API serves from `Redis` (preferred) or `IMemoryCache` |
 | **7-Day Window**         | Today + next 6 days                                                                                |
 | **Timezone**             | Bangladesh Standard Time (UTC+6), pass `timezone=Asia/Dhaka` to API                              |
 | **Temperature Metric**   | Hourly value at 14:00, averaged over 7 days                                                        |
@@ -143,7 +148,6 @@ This assignment requires building a **REST API using .NET** that helps users fin
 | **Ranking Order**        | Ascending Temp, then Ascending PM2.5                                                               |
 | **Recommendation Logic** | Strict AND condition (both metrics must be better)                                                 |
 | **Destination Input**    | District name (string, case-insensitive)                                                           |
-| **Date Validation**      | Must be within next 7 days                                                                         |
 | **API Versioning**       | URL-based (`/api/v1/...`)                                                                        |
-| **Storage**              | In-memory cache (no database)                                                                      |
+| **Storage**              | Redis (Distributed Cache) or In-memory cache (no database)                                         |
 | **Framework**            | ASP.NET Core Web API                                                                               |
