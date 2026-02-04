@@ -37,13 +37,14 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 **Clarification Point:** The requirement states response time must not exceed 500ms. However, fetching weather and air quality data for all 64 districts via HTTP requests during a single user request will inevitably exceed 500ms and hit rate limits.
 
-**Assumption:** Implement a **Background Service (Worker) pattern**. Pre-fetch data for all districts periodically (e.g., every **10 minutes**) and store processed averages in a **distributed cache (Redis)** for scalability and persistence. If a simpler solution is required, an **in-memory cache (`IMemoryCache`)** can be used as a fallback. The API endpoint will read from this "hot" cache.
+**Assumption:** Implement a **Background Service (Worker) pattern**. Pre-fetch data for all districts periodically (e.g., every **10 minutes**) and store processed averages in a **cache (Redis)**. The primary choice for job scheduling is **Hangfire with Redis** for reliability and persistence. If a simpler solution is required, `IHostedService` with `IMemoryCache` can be used as a fallback.
 
 **Impact:**
 
 - Eliminates latency during user requests
-- Requires implementing `IHostedService` in .NET
-- Requires a thread-safe caching strategy (Redis or Memory)
+- Requires **Hangfire** for job scheduling
+- Requires **Redis** for distributed caching and Hangfire storage
+- Requires `docker-compose` for local Redis setup
 
 ---
 
@@ -65,19 +66,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 **Impact:** Aligns the data fetching logic for both weather and air quality APIs.
 
----
-
-### 2.4 Timezone Handling
-
-**Clarification Point:** Open-Meteo returns data in UTC by default. The requirement mentions "2 PM" but 2 PM UTC = 8 PM Bangladesh time.
-
-**Assumption:** "2 PM" refers to **Bangladesh Standard Time (BST, UTC+6)**.
-
-**Impact:** Must pass `&timezone=Asia/Dhaka` to the Open-Meteo API to ensure the 14:00 data point corresponds to local afternoon.
-
----
-
-### 2.5 "Coolest" Definition & Ranking Logic
+### 2.4 "Coolest" Definition & Ranking Logic
 
 **Clarification Point:** "Coolest" usually implies the lowest temperature.
 
@@ -90,7 +79,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 ---
 
-### 2.6 Travel Recommendation Logic (Strictness)
+### 2.5 Travel Recommendation Logic (Strictness)
 
 **Clarification Point:** The requirement states "If the destination is cooler and has better air quality, return Recommended." It doesn't explicitly handle cases where one metric is better but the other is worse.
 
@@ -103,13 +92,26 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 ---
 
-### 2.7 Input Handling for "Destination District"
+### 2.6 Input Handling for "Destination District"
 
 **Clarification Point:** The user inputs a "Destination District" - is this an ID or a case-sensitive string?
 
 **Assumption:** Input will be a **String (District Name)**, case-insensitive matching against the English spelling in `bd-districts.json`.
 
 **Impact:** Load JSON into a `Dictionary<string, District>` at startup for O(1) coordinate lookup by name.
+
+---
+
+### 2.7 Travel Date Validation
+
+**Clarification Point:** What if the user provides a travel date beyond the 7-day forecast range?
+
+**Assumption:** The task description explicitly states: "we can get the temperature forecasts and air quality of each district for **up to 7 days**" ([Open-Meteo documentation](https://open-meteo.com/en/docs)). Therefore, return a **400 Bad Request** with message: "Travel date must be within the next 7 days."
+
+**Impact:** 
+- Prevents inaccurate recommendations based on unavailable forecast data
+- Aligns with API capabilities and background service data availability
+- Provides clear user feedback on acceptable date ranges
 
 ---
 
@@ -128,7 +130,6 @@ This assignment requires building a **REST API using .NET** that helps users fin
 **Clarification Point:** What happens if Open-Meteo API is unavailable during background sync?
 
 **Assumption:**
-
 - Serve **stale cached data** if available (with appropriate warning header)
 - Return **503 Service Unavailable** if no cached data exists
 
@@ -140,14 +141,14 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 | Aspect                         | Decision                                                                                           |
 | ------------------------------ | -------------------------------------------------------------------------------------------------- |
-| **Caching Strategy**     | Background worker (`IHostedService`) refreshes every 10 minutes; API serves from `Redis` (preferred) or `IMemoryCache` |
+| **Caching Strategy**     | Background worker (`Hangfire` + `Redis`) refreshes every 10 minutes; Fallback: `IHostedService` + `IMemoryCache` |
 | **7-Day Window**         | Today + next 6 days                                                                                |
-| **Timezone**             | Bangladesh Standard Time (UTC+6), pass `timezone=Asia/Dhaka` to API                              |
 | **Temperature Metric**   | Hourly value at 14:00, averaged over 7 days                                                        |
 | **PM2.5 Metric**         | Value at 14:00, averaged over 7 days                                                               |
 | **Ranking Order**        | Ascending Temp, then Ascending PM2.5                                                               |
 | **Recommendation Logic** | Strict AND condition (both metrics must be better)                                                 |
 | **Destination Input**    | District name (string, case-insensitive)                                                           |
+| **Date Validation**      | Must be within next 7 days (Open-Meteo API limitation)                                            |
 | **API Versioning**       | URL-based (`/api/v1/...`)                                                                        |
 | **Storage**              | Redis (Distributed Cache) or In-memory cache (no database)                                         |
 | **Framework**            | ASP.NET Core Web API                                                                               |
