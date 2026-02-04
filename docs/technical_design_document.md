@@ -1041,17 +1041,17 @@ Every HTTP request is automatically enriched with a correlation ID for distribut
 RequestLoggingMiddleware:
     ON Request:
         correlationId = Request.Headers["X-Correlation-Id"] ?? NewGuid()
-    
+  
         LogContext.Push("CorrelationId", correlationId)
         LogContext.Push("RequestId", NewGuid())
         LogContext.Push("ClientIp", Request.RemoteIpAddress)
-    
+  
         Response.Headers.Add("X-Correlation-Id", correlationId)
-    
+  
         Log.Information("Request started: {Method} {Path}", method, path)
-    
+  
         AWAIT Next()
-    
+  
         Log.Information("Request completed: {StatusCode} in {DurationMs}ms", statusCode, duration)
 ```
 
@@ -1257,7 +1257,7 @@ services:
 | **Redis**   | Azure Cache for Redis / AWS ElastiCache | Managed Redis with HA             |
 | **Logs**    | Grafana Cloud or self-hosted Loki       | Managed option reduces ops burden |
 | **Secrets** | Azure Key Vault / AWS Secrets Manager   | Never store in env vars in prod   |
-| **CI/CD**   | GitHub Actions / Azure DevOps           | Docker build → push → deploy    |
+| **CI/CD**   | GitHub Actions        | Docker build → push → deploy    |
 
 ### 15.4 API Documentation (Swagger/OpenAPI)
 
@@ -1291,6 +1291,71 @@ Swagger:
 
 > [!NOTE]
 > Swagger UI is enabled in Development environment only. In Production, only the OpenAPI JSON spec is available for client SDK generation.
+
+### 15.5 CI/CD Pipeline
+
+The application uses an automated CI/CD pipeline for quality assurance and safe deployments.
+
+#### 15.5.1 CI Pipeline (All Branches)
+
+Runs on every push and pull request to ensure code quality:
+
+| Stage                  | Actions                                        | Success Criteria              | Duration |
+| ---------------------- | ---------------------------------------------- | ----------------------------- | -------- |
+| **Code Quality**       | dotnet format, EditorConfig                    | No formatting violations      | ~30s     |
+| **Build**              | dotnet build --configuration Release           | Zero build errors             | ~1-2 min |
+| **Unit Tests**         | Domain + Application layer tests               | 100% pass, >85% coverage      | ~1-2 min |
+| **Integration Tests**  | API tests with TestContainers (Redis)          | 100% pass                     | ~2-3 min |
+| **Security Scan**      | Dependency vulnerability check                 | No high/critical CVEs         | ~30s     |
+| **Docker Build**       | Multi-stage build with .NET 10                 | Image builds successfully     | ~2-3 min |
+| **Container Scan**     | Trivy / Snyk security scan                     | No critical vulnerabilities   | ~1 min   |
+
+**Total Duration**: ~8-12 minutes
+
+#### 15.5.2 CD Pipeline (Main Branch Only)
+
+Automated deployment to staging environment:
+
+**Deployment Flow:**
+1. **Build & Tag Container**
+   - Build Docker image with commit SHA tag
+   - Push to container registry
+
+2. **Staging Deployment** (Automatic)
+   - Deploy to staging environment
+   - Run smoke tests (health checks, key API endpoints)
+   - Verify cache connectivity and background jobs
+   - Monitor for errors
+
+**Rollback on Failure:**
+- Auto-rollback if smoke tests fail or error rate >5%
+- Previous version retained for manual rollback if needed
+
+#### 15.5.3 Environments
+
+| Environment      | Deployment Trigger      | Purpose                       |
+| ---------------- | ----------------------- | ----------------------------- |
+| **Development**  | Manual (docker-compose) | Local development & debugging |
+| **Staging**      | Auto (on main push)     | Testing & demonstration       |
+
+**Key Environment Variables:**
+- `REDIS_CONNECTION_STRING`: Redis instance endpoint
+- `CACHE_STALENESS_MINUTES`: Staleness threshold (default: 12)
+- `WEATHER_SYNC_CRON`: Background job schedule (default: `*/10 * * * *`)
+- `LOKI_URL`: Logging aggregation endpoint
+
+#### 15.5.4 Testing Strategy
+
+**Test Coverage:**
+- **Unit Tests**: ~200 tests covering domain logic, ranking algorithm, business policies
+- **Integration Tests**: ~30 E2E tests with TestContainers for Redis
+- **Smoke Tests**: Post-deployment validation (health checks, /top10, /recommendation)
+- **Load Tests**: 1000 RPS sustained for 5 minutes using wrk/k6
+
+**Coverage Enforcement**: PRs blocked if coverage drops below 85%
+
+---
+
 
 ---
 
@@ -1400,7 +1465,3 @@ GET https://air-quality-api.open-meteo.com/v1/air-quality
 | **Clean Architecture**  | An architectural pattern emphasizing separation of concerns and dependency inversion                                          |
 | **p99**                 | 99th percentile - the value below which 99% of observations fall (used for latency metrics)                                   |
 | **RPS**                 | Requests Per Second - a throughput measurement                                                                                |
-
----
-
-**Document End**
