@@ -2,7 +2,7 @@
 
 **Version:** 1.0
 **Date:** February 4, 2026
-**Author:** Senior Backend Engineer
+**Author:** Mehedi Hasan
 **Status:** Draft
 
 ---
@@ -24,7 +24,11 @@
 13. [Security & Rate Limiting](#13-security--rate-limiting)
 14. [Trade-offs & Design Justification](#14-trade-offs--design-justification)
 15. [Infrastructure & Deployment](#15-infrastructure--deployment)
-16. [Future Improvements](#16-future-improvements)
+16. [Acceptance Criteria](#16-acceptance-criteria)
+17. [Future Improvements](#17-future-improvements)
+- [Appendix A: District Data Source](#appendix-a-district-data-source)
+- [Appendix B: Open-Meteo API Reference](#appendix-b-open-meteo-api-reference)
+- [Appendix C: Glossary](#appendix-c-glossary)
 
 ---
 
@@ -66,7 +70,7 @@ SafeTravel Bangladesh API is a production-grade .NET 10 REST API that recommends
 | Metric           | Target        | Strategy                                 |
 | ---------------- | ------------- | ---------------------------------------- |
 | API Availability | 99.9%         | Cache-first with stale fallback          |
-| Data Freshness   | ≤ 15 minutes | 10-minute refresh cycle + buffer         |
+| Data Freshness   | ≤ 12 minutes | 10-minute refresh cycle + 2 min buffer for job delay |
 | Job Success Rate | > 99.5%       | Retry policies, partial failure handling |
 
 ### 2.3 Scalability
@@ -85,7 +89,17 @@ SafeTravel Bangladesh API is a production-grade .NET 10 REST API that recommends
 
 ## 3. High-Level Architecture
 
-![System Architecture Diagram](High-Level%20Architecture.png)
+```mermaid
+flowchart TB
+    CLIENTS["<b>CLIENTS</b>"] --> CONTROLLERS["<b>Controllers</b><br/>/api/v1/districts/top10<br/>/api/v1/travel/recommendation"]
+    CONTROLLERS --> APPLICATION["<b>Application Layer</b><br/>Top10DistrictsQuery<br/>TravelRecommendationQuery"]
+    APPLICATION --> DOMAIN["<b>Domain Layer</b><br/>DistrictRankingService<br/>TravelRecommendationPolicy"]
+    DOMAIN --> REDIS["<b>REDIS CACHE</b>"]
+    DOMAIN --> HANGFIRE["<b>HANGFIRE + REDIS</b><br/>WeatherDataSyncJob<br/>Recurring: every 10 min<br/>Retry: 3 attempts"]
+    REDIS --> INFRA["<b>Infrastructure Layer</b><br/>OpenMeteoWeatherClient<br/>OpenMeteoAirQualityClient<br/>HttpClientFactory pooling"]
+    HANGFIRE --> INFRA
+    INFRA --> EXTERNAL["<b>External APIs</b><br/>Open-Meteo Weather API<br/>Open-Meteo Air Quality API"]
+```
 
 ### Data Flow
 
@@ -108,7 +122,7 @@ SafeTravel Bangladesh API is a production-grade .NET 10 REST API that recommends
 
 | Component                  | Technology                  | Justification                                          |
 | -------------------------- | --------------------------- | ------------------------------------------------------ |
-| **Runtime**          | .NET 10                     | Latest LTS, performance improvements, native AOT ready |
+| **Runtime**          | .NET 10                     | Latest version, performance improvements, native AOT ready |
 | **Framework**        | ASP.NET Core Minimal APIs   | Low overhead, high performance                         |
 | **Architecture**     | Clean Architecture          | Separation of concerns, testability                    |
 | **CQRS**             | LiteBus                     | Lightweight, decouples handlers, minimal overhead      |
@@ -351,7 +365,7 @@ Redis Instance
 
 | Key Pattern                   | Content                              | TTL       | Rationale                              |
 | ----------------------------- | ------------------------------------ | --------- | -------------------------------------- |
-| `safetravel:rankings`       | Sorted list of all 64 districts      | 20 min    | 2x refresh interval for stale fallback |
+| `safetravel:rankings`       | Sorted list of all 64 districts      | 20 min    | ~1.7x staleness threshold (12 min) for fallback buffer |
 | `safetravel:districts:{id}` | 7-day forecast for single district   | 20 min    | Matches rankings TTL                   |
 | `safetravel:metadata`       | `{ lastSync, version, isHealthy }` | No expiry | Always available for health checks     |
 
@@ -362,7 +376,7 @@ CachedRankings {
     Districts: List<RankedDistrict>
     GeneratedAt: DateTime
     Version: int
-    IsStale: bool  // True if (Now - GeneratedAt) > 15 minutes
+    IsStale: bool  // True if (Now - GeneratedAt) > 12 minutes
 }
 
 RankedDistrict {
@@ -378,11 +392,13 @@ CachedDistrictForecast {
 DailyForecast { Date, TempAt2PM, PM25At2PM }
 ```
 
-### 7.4 Cache-Aside with Configurable Freshness Check (Pseudo)
+### 7.4 Cache-Aside with Manual Data Loader (Pseudo)
+
+The staleness threshold is **12 minutes** (10 min job interval + 2 min buffer). If cache data is older than 12 minutes AND no background job is currently running, the API will **manually trigger the data loader** synchronously.
 
 ```
 GetRankingsAsync():
-    stalenessThreshold = Config.Get("CACHE_STALENESS_MINUTES", default: 30)
+    stalenessThreshold = 12 minutes  // 10 min job + 2 min buffer
   
     // Step 1: Try Redis cache with freshness check
     TRY:
@@ -391,73 +407,104 @@ GetRankingsAsync():
         IF cacheEntry IS NOT NULL THEN
             dataAge = Now - cacheEntry.GeneratedAt
     
-            IF dataAge <= stalenessThreshold MINUTES THEN
+            IF dataAge <= stalenessThreshold THEN
                 // Data is fresh - return immediately
                 RETURN cacheEntry
             ELSE
-                // Data is stale - fetch fresh and trigger reload
-                Log.Info("Cache older than {stalenessThreshold} minutes - refreshing")
-                GOTO FetchFromAPI
+                // Data is stale - check if background job is running
+                IF Hangfire.IsJobRunning("weather-data-sync") THEN
+                    // Job is running, return stale data (will be fresh soon)
+                    Log.Info("Cache stale but job running, returning stale data")
+                    RETURN cacheEntry
+                ELSE
+                    // No job running - manually trigger data loader
+                    Log.Info("Cache stale ({dataAge} min), manually loading fresh data")
+                    GOTO ManualDataLoad
+                END IF
             END IF
     CATCH RedisConnectionException:
         Log.Warning("Redis unavailable")
-  
-    FetchFromAPI:
-    // Step 2: Fallback to Open-Meteo API directly
-    Log.Info("Fetching fresh data from Open-Meteo")
+
+    ManualDataLoad:
+    // Step 2: Manual Data Loader (synchronous fetch)
+    Log.Info("Manually fetching fresh data from Open-Meteo")
     districts = GetAllDistrictsFromDictionary()
     weatherData = OpenMeteoClient.GetBulkForecast(districts)
     airQualityData = OpenMeteoClient.GetBulkAirQuality(districts)
-  
+
     rankings = ComputeRankings(weatherData, airQualityData)
-  
-    // Trigger background cache reload
-    BackgroundJob.Enqueue(() => ReloadRedisCache())
-  
+
+    // Update cache synchronously
+    TRY:
+        Redis.Set("safetravel:rankings", rankings, TTL: 20 min)
+    CATCH:
+        Log.Warning("Failed to update cache")
+
     RETURN rankings
 ```
 
-### 7.5 Cache Staleness Check & Refresh Strategy
-
-The system checks Redis data freshness on every request. If cached data is older than the configurable threshold (default: **30 minutes**, set via `CACHE_STALENESS_MINUTES` env var), the API triggers a fresh fetch from Open-Meteo and initiates a background cache reload.
-
-**Cache Freshness Check (Pseudo):**
-
-```
-GetRankingsWithFreshnessCheck():
-    stalenessThreshold = Config.Get("CACHE_STALENESS_MINUTES", default: 30)
-    cacheEntry = Redis.Get("safetravel:rankings")
-  
-    IF cacheEntry IS NULL THEN
-        // Cache miss - fetch fresh and populate
-        RETURN FetchAndCacheFromAPI()
-  
-    dataAge = Now - cacheEntry.GeneratedAt
-  
-    IF dataAge > stalenessThreshold MINUTES THEN
-        Log.Info("Cache data older than {stalenessThreshold} minutes, refreshing from API")
-  
-        // Fetch fresh data for current request
-        freshData = OpenMeteoClient.FetchFreshData()
-  
-        // Trigger background cache reload (non-blocking)
-        BackgroundJob.Enqueue(() => ReloadRedisCache())
-  
-        RETURN freshData
-    END IF
-  
-    // Cache data is fresh (< threshold)
-    RETURN cacheEntry
-```
-
-**Cache Behavior Summary:**
+### 7.5 Cache Behavior Summary
 
 | Scenario                                    | Behavior                                                |
 | ------------------------------------------- | ------------------------------------------------------- |
-| Redis available + data < threshold (30 min) | Return from Redis (fast path ~50ms)                     |
-| Redis available + data > threshold          | Fetch from API, return fresh, trigger background reload |
-| Redis unavailable                           | Fallback to Open-Meteo API directly (~2-3s)             |
-| Cache empty on startup                      | Fetch from Open-Meteo API directly                      |
+| Redis available + data < 12 min             | Return from Redis (fast path ~50ms)                     |
+| Redis available + data > 12 min + job running | Return stale data (job will refresh soon)             |
+| Redis available + data > 12 min + no job    | **Manual data loader** → fetch fresh, update cache, return |
+| Redis unavailable                           | **Manual data loader** → fetch from Open-Meteo (~2-3s) |
+| Cache empty on startup                      | **Manual data loader** → fetch from Open-Meteo         |
+
+### 7.6 Cache-Aside Pattern Sequence Diagram
+
+The following diagram illustrates the cache-aside pattern with freshness checking and manual data loader trigger:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API as SafeTravel API
+    participant Redis as Redis Cache
+    participant OpenMeteo as Open-Meteo API
+    participant Hangfire as Background Job
+
+    Note over Client,Hangfire: Happy Path - Cache Hit (Fresh < 12 min)
+    Client->>API: GET /api/v1/districts/top10
+    API->>Redis: GET safetravel:rankings
+    Redis-->>API: CachedRankings (age < 12 min)
+    API-->>Client: 200 OK (Top 10 Districts)
+
+    Note over Client,Hangfire: Cache Miss - Manual Data Loader
+    Client->>API: GET /api/v1/districts/top10
+    API->>Redis: GET safetravel:rankings
+    Redis-->>API: NULL (cache miss)
+    API->>OpenMeteo: GET /forecast (Manual Data Loader)
+    OpenMeteo-->>API: Weather + AQ Data
+    API->>API: ComputeRankings()
+    API->>Redis: SET safetravel:rankings
+    API-->>Client: 200 OK (Top 10 Districts)
+
+    Note over Client,Hangfire: Stale Cache (> 12 min) - Manual Trigger
+    Client->>API: GET /api/v1/districts/top10
+    API->>Redis: GET safetravel:rankings
+    Redis-->>API: CachedRankings (age > 12 min)
+    API->>Hangfire: Check if job running?
+    Hangfire-->>API: No job running
+    API->>OpenMeteo: GET /forecast (Manual Data Loader)
+    OpenMeteo-->>API: Fresh Data
+    API->>Redis: SET safetravel:rankings
+    API-->>Client: 200 OK (Fresh Data)
+
+    Note over Client,Hangfire: Background Job - Scheduled Refresh (Every 10 min)
+    Hangfire->>OpenMeteo: GET /forecast (all 64 districts)
+    OpenMeteo-->>Hangfire: Weather + AQ Data
+    Hangfire->>Hangfire: ComputeRankings()
+    Hangfire->>Redis: SET safetravel:rankings (atomic)
+
+    Note over Client,Hangfire: Redis Down - Direct Fallback
+    Client->>API: GET /api/v1/districts/top10
+    API-xRedis: Connection Failed
+    API->>OpenMeteo: GET /forecast (Manual Data Loader)
+    OpenMeteo-->>API: Weather + AQ Data
+    API-->>Client: 200 OK (Top 10 Districts)
+```
 
 ---
 
@@ -469,7 +516,8 @@ GetRankingsWithFreshnessCheck():
 | ------ | --------------------------------- | ----------------------------------------- |
 | GET    | `/api/v1/districts/top10`       | Get top 10 coolest & cleanest districts   |
 | POST   | `/api/v1/travel/recommendation` | Get travel recommendation for destination |
-| GET    | `/health`                       | Health check (Redis + last sync status)   |
+| GET    | `/health/live`                  | Liveness probe (app is running)           |
+| GET    | `/health/ready`                 | Readiness probe (Redis + last sync status)|
 | GET    | `/hangfire`                     | Hangfire dashboard (secured)              |
 
 ### 8.2 Request/Response Models
@@ -526,6 +574,15 @@ Cache-Control: public, max-age=60
 }
 ```
 
+**Request Field Specifications:**
+
+| Field | Type | Format | Required | Description |
+|-------|------|--------|----------|-------------|
+| `currentLocation.latitude` | number | Decimal | Yes | User's current latitude (-90 to 90) |
+| `currentLocation.longitude` | number | Decimal | Yes | User's current longitude (-180 to 180) |
+| `destinationDistrict` | string | Text | Yes | District name (case-insensitive) |
+| `travelDate` | string | `yyyy-MM-dd` (ISO 8601) | Yes | Travel date in Asia/Dhaka timezone |
+
 **Response (200 OK - Recommended):**
 
 ```json
@@ -573,6 +630,24 @@ Cache-Control: public, max-age=60
     "destinationDistrict": ["District 'InvalidName' not found."]
   }
 }
+```
+
+**Response (503 Service Unavailable):**
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.6.4",
+  "title": "Service Unavailable",
+  "status": 503,
+  "detail": "Weather data is temporarily unavailable. External API down and no cached data exists.",
+  "retryAfter": 60
+}
+```
+
+**Response Headers:**
+
+```
+Retry-After: 60
 ```
 
 ### 8.3 API Optimizations
@@ -775,7 +850,7 @@ GetBulkForecast(districts, forecastDays):
     RETURN Deserialize<BulkWeatherResponse>(response)
 ```
 
-### 10.4 Timeout Configuration
+### 10.3 Timeout Configuration
 
 | Layer              | Timeout | Purpose                 |
 | ------------------ | ------- | ----------------------- |
@@ -803,7 +878,7 @@ GetBulkForecast(districts, forecastDays):
 
 ```
 GetData():
-    stalenessThreshold = Config.Get("CACHE_STALENESS_MINUTES", default: 30)
+    stalenessThreshold = 12 minutes  // 10 min job + 2 min buffer
   
     // Step 1: Check Redis Cache
     TRY:
@@ -812,24 +887,24 @@ GetData():
         IF cacheEntry IS NOT NULL THEN
             dataAge = Now - cacheEntry.GeneratedAt
     
-            IF dataAge <= stalenessThreshold MINUTES THEN
+            IF dataAge <= stalenessThreshold THEN
                 // Fresh data - return immediately
                 RETURN cacheEntry
             ELSE
-                // Stale data (> threshold) - fetch fresh and reload cache
-                Log.Info("Cache stale, refreshing from API")
-                freshData = OpenMeteoClient.FetchFreshData()
-        
-                // Trigger background cache reload
-                BackgroundJob.Enqueue(() => ReloadRedisCache())
-        
-                RETURN freshData
+                // Data is stale - check if background job is running
+                IF Hangfire.IsJobRunning("weather-data-sync") THEN
+                    Log.Info("Cache stale but job running, returning stale")
+                    RETURN cacheEntry
+                ELSE
+                    // No job running - manually trigger data loader
+                    GOTO ManualDataLoad
+                END IF
             END IF
-        END IF
     CATCH RedisException:
         Log.Warning("Redis unavailable")
   
-    // Step 2: Redis miss or unavailable - Direct API Call
+    ManualDataLoad:
+    // Step 2: Manual Data Loader - Direct API Call
     freshData = OpenMeteoClient.FetchFreshData()
   
     // Best effort: try to populate cache
@@ -1218,7 +1293,7 @@ Swagger:
 
 ---
 
-## 16. Future Improvements
+## 16. Acceptance Criteria\r\n\r\nThis section maps technical design decisions back to the original requirements.\r\n\r\n### 16.1 Performance Requirements\r\n\r\n| Requirement | Target | Design Solution | Acceptance Test |\r\n|-------------|--------|-----------------|-----------------|\r\n| API Response Time | ≤ 500ms (p99) | Pre-computed Redis cache, no runtime API calls | `wrk` load test: p99 < 500ms at 100 RPS |\r\n| Cache Hit Rate | > 99% | Background refresh every 10 min, 20 min TTL | Monitor `cache_hit_ratio` metric > 0.99 |\r\n| Throughput | 1000 RPS | Stateless API, Redis-backed cache | `wrk` load test: sustained 1000 RPS |\r\n\r\n### 16.2 Functional Requirements\r\n\r\n| Requirement | Source | Implementation | Verification |\r\n|-------------|--------|----------------|--------------|\r\n| Top 10 Districts | Req 2.4 | `GET /api/v1/districts/top10` returns ranked list | Unit test: verify sorting by temp ASC, PM2.5 ASC |\r\n| Travel Recommendation | Req 2.5 | `POST /api/v1/travel/recommendation` with strict AND logic | Unit test: all 4 combination scenarios |\r\n| 7-Day Forecast | Req 2.2 | Today + next 6 days at 14:00 local time | Integration test: verify date range in API response |\r\n| District Lookup | Req 2.6 | Case-insensitive dictionary lookup | Unit test: \"Dhaka\", \"DHAKA\", \"dhaka\" all resolve |\r\n| Date Validation | Req 2.7 | 400 error if travelDate > 7 days | Unit test: day 8 returns 400 |\r\n\r\n### 16.3 Reliability Requirements\r\n\r\n| Requirement | Target | Design Solution | Verification |\r\n|-------------|--------|-----------------|--------------|\r\n| API Availability | 99.9% | Cache-first with stale fallback | Integration test: API responds when Redis down |\r\n| Job Crash Recovery | 100% | Hangfire Redis persistence | Manual test: restart app mid-job, verify resume |\r\n| External API Failure | Graceful | Retry policies + cached fallback | Integration test: mock 503, verify stale response |\r\n\r\n### 16.4 Traceability Matrix\r\n\r\n| Req ID | Requirement | TDD Section |\r\n|--------|-------------|-------------|\r\n| 2.1 | 500ms performance constraint | §2.1, §7 |\r\n| 2.2 | 7-day average temperature at 2 PM | §9.2 |\r\n| 2.3 | PM2.5 at 2 PM averaged | §9.2 |\r\n| 2.4 | Coolest + cleanest ranking | §9.1 |\r\n| 2.5 | Strict AND recommendation logic | §9.3 |\r\n| 2.6 | District name input (case-insensitive) | §5.5 |\r\n| 2.7 | 7-day date validation | §13.3 |\r\n| 2.8 | Timezone handling (Asia/Dhaka) | §8.2, §10.2 |\r\n| 2.9 | Open-Meteo rate limits | §10.1 |\r\n| 2.10 | URL-based API versioning | §8.1 |\r\n| 2.11 | External API failure handling | §11 |\r\n| 2.12 | Serilog + Grafana/Loki logging | §12.1 |\r\n\r\n---\r\n\r\n## 17. Future Improvements
 
 | Improvement                   | Benefit                  | Effort |
 | ----------------------------- | ------------------------ | ------ |
@@ -1266,6 +1341,33 @@ GET https://air-quality-api.open-meteo.com/v1/air-quality
     &forecast_days=7
     &timezone=Asia/Dhaka
 ```
+
+---
+
+## Appendix C: Glossary
+
+| Term | Definition |
+|------|------------|
+| **CQRS** | Command Query Responsibility Segregation - a pattern that separates read and write operations into different models |
+| **LiteBus** | A lightweight in-process message bus for .NET, used here for dispatching queries to handlers |
+| **PM2.5** | Particulate Matter 2.5 - fine inhalable particles with diameters ≤2.5 micrometers, a key air quality metric |
+| **Cache-Aside** | A caching strategy where the application checks the cache first, and on miss, fetches from the source and populates the cache |
+| **TTL** | Time To Live - duration after which cached data expires automatically |
+| **Staleness Threshold** | The maximum acceptable age of cached data before it's considered stale and requires refresh (12 minutes in this system) |
+| **Idempotent** | An operation that produces the same result regardless of how many times it's executed |
+| **Circuit Breaker** | A resilience pattern that stops requests to a failing service to prevent cascade failures |
+| **Polly** | A .NET resilience library providing retry, circuit breaker, timeout, and fallback policies |
+| **Hangfire** | A .NET library for background job processing with persistence and automatic retries |
+| **Redis** | An in-memory data structure store used as a cache and message broker |
+| **Loki** | A log aggregation system designed for cloud-native environments, inspired by Prometheus |
+| **LogQL** | Loki's query language for filtering and analyzing log data |
+| **ETag** | Entity Tag - an HTTP header for cache validation, enabling conditional requests |
+| **Brotli** | A compression algorithm that achieves better compression ratios than gzip |
+| **Open-Meteo** | A free weather API providing forecasts and historical weather data |
+| **Minimal APIs** | ASP.NET Core's lightweight approach to building HTTP APIs with minimal ceremony |
+| **Clean Architecture** | An architectural pattern emphasizing separation of concerns and dependency inversion |
+| **p99** | 99th percentile - the value below which 99% of observations fall (used for latency metrics) |
+| **RPS** | Requests Per Second - a throughput measurement |
 
 ---
 

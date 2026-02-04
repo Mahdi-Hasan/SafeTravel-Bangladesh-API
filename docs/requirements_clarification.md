@@ -115,7 +115,26 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 ---
 
-### 2.8 API Versioning
+### 2.8 Authentication & Authorization
+
+**Clarification Point:** The requirements do not specify any authentication or authorization mechanism for the API endpoints.
+
+**Assumption:** Since authentication is **not explicitly defined** in the requirements, the API will be implemented as a **public API** without authentication for the initial version.
+
+**Key Decisions:**
+- No API keys, JWT tokens, or OAuth flows required
+- All endpoints publicly accessible
+- Rate limiting by IP address (optional, for abuse prevention)
+- Hangfire dashboard protected with basic authentication (admin access only)
+
+**Impact:**
+- Simplified implementation for MVP
+- Authentication can be added in future versions if needed
+- Hangfire dashboard requires separate security configuration
+
+---
+
+### 2.9 API Versioning
 
 **Clarification Point:** No versioning strategy mentioned in requirements.
 
@@ -125,7 +144,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 ---
 
-### 2.9 Error Handling for External API Failures
+### 2.10 Error Handling for External API Failures
 
 **Clarification Point:** What happens if Open-Meteo API is unavailable during background sync?
 
@@ -135,7 +154,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 **Impact:** Improves API resilience during external service outages.
 
-### 2.10 Logging & Observability Strategy
+### 2.11 Logging & Observability Strategy
 
 **Clarification Point:** The requirement does not specify logging infrastructure, log aggregation, or monitoring tools.
 
@@ -174,7 +193,8 @@ This assignment requires building a **REST API using .NET** that helps users fin
 | **Destination Input**    | District name (string, case-insensitive)                                                           |
 | **Date Validation**      | Must be within next 7 days (Open-Meteo API limitation)                                            |
 | **API Versioning**       | URL-based (`/api/v1/...`)                                                                        |
+| **Authentication**       | None (public API, no auth required per requirements)                                              |
 | **Logging**              | Serilog + Grafana/Loki (structured logging, centralized aggregation)                              |
-| **Storage**              | Redis (Distributed Cache) or In-memory cache (no database)                                         |
-| **Framework**            | ASP.NET Core Web API                                                                               |
+| **Storage**          | Redis (Distributed Cache) or In-memory cache (no database)                                         |
+| **Framework**        | ASP.NET Core Web API                                                                               |
 
