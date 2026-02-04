@@ -135,6 +135,30 @@ This assignment requires building a **REST API using .NET** that helps users fin
 
 **Impact:** Improves API resilience during external service outages.
 
+### 2.10 Logging & Observability Strategy
+
+**Clarification Point:** The requirement does not specify logging infrastructure, log aggregation, or monitoring tools.
+
+**Assumption:** Implement a production-grade logging stack:
+
+- **Logging Framework**: Serilog (structured logging with rich property support)
+- **Log Aggregation**: Grafana Loki (cost-effective, label-based log storage)
+- **Visualization**: Grafana (unified dashboards for logs and metrics)
+
+**Key Decisions:**
+
+| Aspect | Decision | Justification |
+| ------ | -------- | ------------- |
+| **Structured Logging** | JSON format with Serilog | Enables efficient querying and filtering in Loki |
+| **Log Enrichment** | CorrelationId, RequestId, Environment | Distributed tracing and debugging |
+| **Retention** | 30 days in Loki | Balance between storage cost and debugging needs |
+| **Alerting** | Grafana alerting rules | Unified alerting for logs and metrics |
+
+**Impact:**
+- Requires Loki and Grafana infrastructure (or managed service)
+- Adds `Serilog.Sinks.Grafana.Loki` NuGet package
+- Environment variables for log configuration (LOKI_URL, LOG_LEVEL)
+
 ---
 
 ## 3. Summary of Key Decisions
@@ -150,5 +174,7 @@ This assignment requires building a **REST API using .NET** that helps users fin
 | **Destination Input**    | District name (string, case-insensitive)                                                           |
 | **Date Validation**      | Must be within next 7 days (Open-Meteo API limitation)                                            |
 | **API Versioning**       | URL-based (`/api/v1/...`)                                                                        |
+| **Logging**              | Serilog + Grafana/Loki (structured logging, centralized aggregation)                              |
 | **Storage**              | Redis (Distributed Cache) or In-memory cache (no database)                                         |
 | **Framework**            | ASP.NET Core Web API                                                                               |
+
