@@ -18,14 +18,15 @@
 7. [Caching Strategy](#7-caching-strategy)
 8. [API Design](#8-api-design)
 9. [Domain Logic](#9-domain-logic)
-10. [HTTP & External API Best Practices](#10-http--external-api-best-practices)
-11. [Failure Scenarios & Recovery](#11-failure-scenarios--recovery)
-12. [Observability & Monitoring](#12-observability--monitoring)
-13. [Security & Rate Limiting](#13-security--rate-limiting)
-14. [Trade-offs & Design Justification](#14-trade-offs--design-justification)
-15. [Infrastructure & Deployment](#15-infrastructure--deployment)
+10. [HTTP &amp; External API Best Practices](#10-http--external-api-best-practices)
+11. [Failure Scenarios &amp; Recovery](#11-failure-scenarios--recovery)
+12. [Observability &amp; Monitoring](#12-observability--monitoring)
+13. [Security &amp; Rate Limiting](#13-security--rate-limiting)
+14. [Trade-offs &amp; Design Justification](#14-trade-offs--design-justification)
+15. [Infrastructure &amp; Deployment](#15-infrastructure--deployment)
 16. [Acceptance Criteria](#16-acceptance-criteria)
 17. [Future Improvements](#17-future-improvements)
+
 - [Appendix A: District Data Source](#appendix-a-district-data-source)
 - [Appendix B: Open-Meteo API Reference](#appendix-b-open-meteo-api-reference)
 - [Appendix C: Glossary](#appendix-c-glossary)
@@ -67,11 +68,11 @@ SafeTravel Bangladesh API is a production-grade .NET 10 REST API that recommends
 
 ### 2.2 Reliability
 
-| Metric           | Target        | Strategy                                 |
-| ---------------- | ------------- | ---------------------------------------- |
-| API Availability | 99.9%         | Cache-first with stale fallback          |
+| Metric           | Target        | Strategy                                             |
+| ---------------- | ------------- | ---------------------------------------------------- |
+| API Availability | 99.9%         | Cache-first with stale fallback                      |
 | Data Freshness   | ≤ 12 minutes | 10-minute refresh cycle + 2 min buffer for job delay |
-| Job Success Rate | > 99.5%       | Retry policies, partial failure handling |
+| Job Success Rate | > 99.5%       | Retry policies, partial failure handling             |
 
 ### 2.3 Scalability
 
@@ -120,20 +121,20 @@ flowchart TB
 
 ## 4. Technology Stack
 
-| Component                  | Technology                  | Justification                                          |
-| -------------------------- | --------------------------- | ------------------------------------------------------ |
-| **Runtime**          | .NET 10                     | Latest version, performance improvements, native AOT ready |
-| **Framework**        | ASP.NET Core Minimal APIs   | Low overhead, high performance                         |
-| **Architecture**     | Clean Architecture          | Separation of concerns, testability                    |
-| **CQRS**             | LiteBus                     | Lightweight, decouples handlers, minimal overhead      |
-| **Background Jobs**  | Hangfire + Redis            | Persistent, survives restarts, built-in retry          |
-| **Cache**            | Redis                       | Distributed, atomic operations, high throughput        |
-| **HTTP Client**      | IHttpClientFactory + Polly  | Connection pooling, resilience policies                |
-| **Serialization**    | System.Text.Json            | Native, high performance                               |
-| **Validation**       | FluentValidation            | Declarative, testable                                  |
-| **Logging**          | Serilog + Grafana/Loki      | Structured logging, centralized log aggregation        |
-| **API Documentation**| Swagger/OpenAPI             | Interactive docs, client SDK generation                |
-| **Containerization** | Docker + docker-compose     | Local Redis, consistent environments                   |
+| Component                   | Technology                 | Justification                                              |
+| --------------------------- | -------------------------- | ---------------------------------------------------------- |
+| **Runtime**           | .NET 10                    | Latest version, performance improvements, native AOT ready |
+| **Framework**         | ASP.NET Core Minimal APIs  | Low overhead, high performance                             |
+| **Architecture**      | Clean Architecture         | Separation of concerns, testability                        |
+| **CQRS**              | LiteBus                    | Lightweight, decouples handlers, minimal overhead          |
+| **Background Jobs**   | Hangfire + Redis           | Persistent, survives restarts, built-in retry              |
+| **Cache**             | Redis                      | Distributed, atomic operations, high throughput            |
+| **HTTP Client**       | IHttpClientFactory + Polly | Connection pooling, resilience policies                    |
+| **Serialization**     | System.Text.Json           | Native, high performance                                   |
+| **Validation**        | FluentValidation           | Declarative, testable                                      |
+| **Logging**           | Serilog + Grafana/Loki     | Structured logging, centralized log aggregation            |
+| **API Documentation** | Swagger/OpenAPI            | Interactive docs, client SDK generation                    |
+| **Containerization**  | Docker + docker-compose    | Local Redis, consistent environments                       |
 
 ### 4.1 Environment Variables
 
@@ -363,11 +364,11 @@ Redis Instance
 
 ### 7.2 Cache Keys & TTL
 
-| Key Pattern                   | Content                              | TTL       | Rationale                              |
-| ----------------------------- | ------------------------------------ | --------- | -------------------------------------- |
+| Key Pattern                   | Content                              | TTL       | Rationale                                              |
+| ----------------------------- | ------------------------------------ | --------- | ------------------------------------------------------ |
 | `safetravel:rankings`       | Sorted list of all 64 districts      | 20 min    | ~1.7x staleness threshold (12 min) for fallback buffer |
-| `safetravel:districts:{id}` | 7-day forecast for single district   | 20 min    | Matches rankings TTL                   |
-| `safetravel:metadata`       | `{ lastSync, version, isHealthy }` | No expiry | Always available for health checks     |
+| `safetravel:districts:{id}` | 7-day forecast for single district   | 20 min    | Matches rankings TTL                                   |
+| `safetravel:metadata`       | `{ lastSync, version, isHealthy }` | No expiry | Always available for health checks                     |
 
 ### 7.3 Cache Data Structures (Pseudo)
 
@@ -406,7 +407,7 @@ GetRankingsAsync():
   
         IF cacheEntry IS NOT NULL THEN
             dataAge = Now - cacheEntry.GeneratedAt
-    
+  
             IF dataAge <= stalenessThreshold THEN
                 // Data is fresh - return immediately
                 RETURN cacheEntry
@@ -445,13 +446,13 @@ GetRankingsAsync():
 
 ### 7.5 Cache Behavior Summary
 
-| Scenario                                    | Behavior                                                |
-| ------------------------------------------- | ------------------------------------------------------- |
-| Redis available + data < 12 min             | Return from Redis (fast path ~50ms)                     |
-| Redis available + data > 12 min + job running | Return stale data (job will refresh soon)             |
-| Redis available + data > 12 min + no job    | **Manual data loader** → fetch fresh, update cache, return |
-| Redis unavailable                           | **Manual data loader** → fetch from Open-Meteo (~2-3s) |
-| Cache empty on startup                      | **Manual data loader** → fetch from Open-Meteo         |
+| Scenario                                      | Behavior                                                          |
+| --------------------------------------------- | ----------------------------------------------------------------- |
+| Redis available + data < 12 min               | Return from Redis (fast path ~50ms)                               |
+| Redis available + data > 12 min + job running | Return stale data (job will refresh soon)                         |
+| Redis available + data > 12 min + no job      | **Manual data loader** → fetch fresh, update cache, return |
+| Redis unavailable                             | **Manual data loader** → fetch from Open-Meteo (~2-3s)     |
+| Cache empty on startup                        | **Manual data loader** → fetch from Open-Meteo             |
 
 ### 7.6 Cache-Aside Pattern Sequence Diagram
 
@@ -512,13 +513,13 @@ sequenceDiagram
 
 ### 8.1 Endpoints
 
-| Method | Endpoint                          | Description                               |
-| ------ | --------------------------------- | ----------------------------------------- |
-| GET    | `/api/v1/districts/top10`       | Get top 10 coolest & cleanest districts   |
-| POST   | `/api/v1/travel/recommendation` | Get travel recommendation for destination |
-| GET    | `/health/live`                  | Liveness probe (app is running)           |
-| GET    | `/health/ready`                 | Readiness probe (Redis + last sync status)|
-| GET    | `/hangfire`                     | Hangfire dashboard (secured)              |
+| Method | Endpoint                          | Description                                |
+| ------ | --------------------------------- | ------------------------------------------ |
+| GET    | `/api/v1/districts/top10`       | Get top 10 coolest & cleanest districts    |
+| POST   | `/api/v1/travel/recommendation` | Get travel recommendation for destination  |
+| GET    | `/health/live`                  | Liveness probe (app is running)            |
+| GET    | `/health/ready`                 | Readiness probe (Redis + last sync status) |
+| GET    | `/hangfire`                     | Hangfire dashboard (secured)               |
 
 ### 8.2 Request/Response Models
 
@@ -576,12 +577,12 @@ Cache-Control: public, max-age=60
 
 **Request Field Specifications:**
 
-| Field | Type | Format | Required | Description |
-|-------|------|--------|----------|-------------|
-| `currentLocation.latitude` | number | Decimal | Yes | User's current latitude (-90 to 90) |
-| `currentLocation.longitude` | number | Decimal | Yes | User's current longitude (-180 to 180) |
-| `destinationDistrict` | string | Text | Yes | District name (case-insensitive) |
-| `travelDate` | string | `yyyy-MM-dd` (ISO 8601) | Yes | Travel date in Asia/Dhaka timezone |
+| Field                         | Type   | Format                    | Required | Description                            |
+| ----------------------------- | ------ | ------------------------- | -------- | -------------------------------------- |
+| `currentLocation.latitude`  | number | Decimal                   | Yes      | User's current latitude (-90 to 90)    |
+| `currentLocation.longitude` | number | Decimal                   | Yes      | User's current longitude (-180 to 180) |
+| `destinationDistrict`       | string | Text                      | Yes      | District name (case-insensitive)       |
+| `travelDate`                | string | `yyyy-MM-dd` (ISO 8601) | Yes      | Travel date in Asia/Dhaka timezone     |
 
 **Response (200 OK - Recommended):**
 
@@ -886,7 +887,7 @@ GetData():
   
         IF cacheEntry IS NOT NULL THEN
             dataAge = Now - cacheEntry.GeneratedAt
-    
+  
             IF dataAge <= stalenessThreshold THEN
                 // Fresh data - return immediately
                 RETURN cacheEntry
@@ -926,11 +927,11 @@ The API implements a comprehensive logging strategy using **Serilog** as the str
 
 #### 12.1.1 Why Serilog + Grafana + Loki
 
-| Decision | Choice | Justification |
-| -------- | ------ | ------------- |
-| **Logging Framework** | Serilog | Industry-standard structured logging for .NET, rich sink ecosystem, enrichment support |
-| **Log Aggregation** | Loki | Prometheus-inspired, log labels for efficient querying, cost-effective (no full-text indexing) |
-| **Visualization** | Grafana | Unified dashboards for logs + metrics, powerful query language (LogQL), alerting support |
+| Decision                    | Choice  | Justification                                                                                  |
+| --------------------------- | ------- | ---------------------------------------------------------------------------------------------- |
+| **Logging Framework** | Serilog | Industry-standard structured logging for .NET, rich sink ecosystem, enrichment support         |
+| **Log Aggregation**   | Loki    | Prometheus-inspired, log labels for efficient querying, cost-effective (no full-text indexing) |
+| **Visualization**     | Grafana | Unified dashboards for logs + metrics, powerful query language (LogQL), alerting support       |
 
 #### 12.1.2 Serilog Configuration (Pseudo)
 
@@ -973,12 +974,12 @@ Loki:
 
 **Environment Variables:**
 
-| Variable | Description | Default Value |
-| -------- | ----------- | ------------- |
-| `LOKI_URL` | Loki push API endpoint | `http://localhost:3100` |
-| `LOG_LEVEL` | Minimum log level | `Information` |
-| `LOG_ENABLE_CONSOLE` | Enable console sink | `true` |
-| `LOG_ENABLE_LOKI` | Enable Loki sink | `true` |
+| Variable               | Description            | Default Value             |
+| ---------------------- | ---------------------- | ------------------------- |
+| `LOKI_URL`           | Loki push API endpoint | `http://localhost:3100` |
+| `LOG_LEVEL`          | Minimum log level      | `Information`           |
+| `LOG_ENABLE_CONSOLE` | Enable console sink    | `true`                  |
+| `LOG_ENABLE_LOKI`    | Enable Loki sink       | `true`                  |
 
 #### 12.1.4 Structured Log Events
 
@@ -986,20 +987,20 @@ All log events follow a consistent structure with contextual properties:
 
 **Key Log Events:**
 
-| Event | Level | Properties | Purpose |
-| ----- | ----- | ---------- | ------- |
-| `ApiRequestStarted` | Information | `RequestId`, `Path`, `Method` | Request tracing |
-| `ApiRequestCompleted` | Information | `RequestId`, `StatusCode`, `DurationMs` | Performance monitoring |
-| `CacheHit` | Debug | `CacheKey`, `AgeSeconds` | Cache effectiveness |
-| `CacheMiss` | Information | `CacheKey`, `FallbackUsed` | Cache miss tracking |
-| `CacheStale` | Warning | `CacheKey`, `AgeMinutes`, `Threshold` | Staleness detection |
-| `WeatherSyncStarted` | Information | `JobId`, `DistrictCount` | Job execution tracking |
-| `WeatherSyncCompleted` | Information | `JobId`, `DurationSeconds`, `DistrictCount` | Job success monitoring |
-| `WeatherSyncFailed` | Error | `JobId`, `ErrorMessage`, `Attempt` | Job failure alerting |
-| `ExternalApiCallStarted` | Debug | `Url`, `Method` | External dependency tracing |
-| `ExternalApiCallCompleted` | Information | `Url`, `StatusCode`, `DurationMs` | External API monitoring |
-| `ExternalApiCallFailed` | Warning | `Url`, `ErrorType`, `WillRetry` | Retry and failure tracking |
-| `RedisConnectionFailed` | Warning | `Exception` | Cache availability |
+| Event                        | Level       | Properties                                        | Purpose                     |
+| ---------------------------- | ----------- | ------------------------------------------------- | --------------------------- |
+| `ApiRequestStarted`        | Information | `RequestId`, `Path`, `Method`               | Request tracing             |
+| `ApiRequestCompleted`      | Information | `RequestId`, `StatusCode`, `DurationMs`     | Performance monitoring      |
+| `CacheHit`                 | Debug       | `CacheKey`, `AgeSeconds`                      | Cache effectiveness         |
+| `CacheMiss`                | Information | `CacheKey`, `FallbackUsed`                    | Cache miss tracking         |
+| `CacheStale`               | Warning     | `CacheKey`, `AgeMinutes`, `Threshold`       | Staleness detection         |
+| `WeatherSyncStarted`       | Information | `JobId`, `DistrictCount`                      | Job execution tracking      |
+| `WeatherSyncCompleted`     | Information | `JobId`, `DurationSeconds`, `DistrictCount` | Job success monitoring      |
+| `WeatherSyncFailed`        | Error       | `JobId`, `ErrorMessage`, `Attempt`          | Job failure alerting        |
+| `ExternalApiCallStarted`   | Debug       | `Url`, `Method`                               | External dependency tracing |
+| `ExternalApiCallCompleted` | Information | `Url`, `StatusCode`, `DurationMs`           | External API monitoring     |
+| `ExternalApiCallFailed`    | Warning     | `Url`, `ErrorType`, `WillRetry`             | Retry and failure tracking  |
+| `RedisConnectionFailed`    | Warning     | `Exception`                                     | Cache availability          |
 
 **Log Event Examples (Pseudo):**
 
@@ -1040,17 +1041,17 @@ Every HTTP request is automatically enriched with a correlation ID for distribut
 RequestLoggingMiddleware:
     ON Request:
         correlationId = Request.Headers["X-Correlation-Id"] ?? NewGuid()
-        
+    
         LogContext.Push("CorrelationId", correlationId)
         LogContext.Push("RequestId", NewGuid())
         LogContext.Push("ClientIp", Request.RemoteIpAddress)
-        
+    
         Response.Headers.Add("X-Correlation-Id", correlationId)
-        
+    
         Log.Information("Request started: {Method} {Path}", method, path)
-        
+    
         AWAIT Next()
-        
+    
         Log.Information("Request completed: {StatusCode} in {DurationMs}ms", statusCode, duration)
 ```
 
@@ -1060,23 +1061,23 @@ A pre-configured Grafana dashboard provides operational visibility:
 
 **Key Panels:**
 
-| Panel | Query (LogQL) | Purpose |
-| ----- | ------------- | ------- |
-| **Request Rate** | `rate({app="safetravel-api"} \|~ "Request completed" [5m])` | Traffic monitoring |
-| **Error Rate** | `rate({app="safetravel-api", level="error"} [5m])` | Error detection |
-| **Cache Hit Ratio** | `count_over_time({app="safetravel-api"} \|~ "CacheHit" [5m]) / count_over_time({app="safetravel-api"} \|~ "Cache" [5m])` | Cache effectiveness |
-| **Job Failures** | `{app="safetravel-api"} \|~ "WeatherSyncFailed"` | Background job health |
-| **P99 Latency** | Derived from `DurationMs` property | Performance SLA |
+| Panel                     | Query (LogQL)                                                                                                            | Purpose               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------- |
+| **Request Rate**    | `rate({app="safetravel-api"} \|~ "Request completed" [5m])`                                                             | Traffic monitoring    |
+| **Error Rate**      | `rate({app="safetravel-api", level="error"} [5m])`                                                                     | Error detection       |
+| **Cache Hit Ratio** | `count_over_time({app="safetravel-api"} \|~ "CacheHit" [5m]) / count_over_time({app="safetravel-api"} \|~ "Cache" [5m])` | Cache effectiveness   |
+| **Job Failures**    | `{app="safetravel-api"} \|~ "WeatherSyncFailed"`                                                                        | Background job health |
+| **P99 Latency**     | Derived from `DurationMs` property                                                                                     | Performance SLA       |
 
 #### 12.1.7 Alerting Rules (Grafana)
 
-| Alert | Condition | Severity | Action |
-| ----- | --------- | -------- | ------ |
-| High Error Rate | `error_rate > 5%` over 5 min | Critical | PagerDuty/Slack |
-| Cache Miss Spike | `cache_miss_rate > 20%` over 10 min | Warning | Slack |
-| Weather Sync Failure | 3 consecutive job failures | Critical | PagerDuty |
-| Data Staleness | No successful sync in 30 min | Warning | Slack |
-| API Latency Degradation | `p99 > 500ms` over 5 min | Warning | Slack |
+| Alert                   | Condition                             | Severity | Action          |
+| ----------------------- | ------------------------------------- | -------- | --------------- |
+| High Error Rate         | `error_rate > 5%` over 5 min        | Critical | PagerDuty/Slack |
+| Cache Miss Spike        | `cache_miss_rate > 20%` over 10 min | Warning  | Slack           |
+| Weather Sync Failure    | 3 consecutive job failures            | Critical | PagerDuty       |
+| Data Staleness          | No successful sync in 30 min          | Warning  | Slack           |
+| API Latency Degradation | `p99 > 500ms` over 5 min            | Warning  | Slack           |
 
 ### 12.2 Key Metrics to Monitor
 
@@ -1212,12 +1213,12 @@ The application is containerized for consistent deployment across environments:
 
 **Container Specifications:**
 
-| Container | Image | Purpose | Resource Limits |
-| --------- | ----- | ------- | --------------- |
-| `safetravel-api` | Custom (.NET 10) | API application | 512MB RAM, 0.5 CPU |
-| `redis` | `redis:7-alpine` | Cache + Hangfire storage | 256MB RAM |
-| `loki` | `grafana/loki:2.9` | Log aggregation | 512MB RAM |
-| `grafana` | `grafana/grafana:10` | Dashboards & alerts | 256MB RAM |
+| Container          | Image                  | Purpose                  | Resource Limits    |
+| ------------------ | ---------------------- | ------------------------ | ------------------ |
+| `safetravel-api` | Custom (.NET 10)       | API application          | 512MB RAM, 0.5 CPU |
+| `redis`          | `redis:7-alpine`     | Cache + Hangfire storage | 256MB RAM          |
+| `loki`           | `grafana/loki:2.9`   | Log aggregation          | 512MB RAM          |
+| `grafana`        | `grafana/grafana:10` | Dashboards & alerts      | 256MB RAM          |
 
 ### 15.2 Docker Compose (Local Development)
 
@@ -1241,7 +1242,7 @@ services:
   loki:
     image: grafana/loki:2.9
     ports: ["3100:3100"]
-    
+  
   grafana:
     image: grafana/grafana:10
     ports: ["3000:3000"]
@@ -1250,13 +1251,13 @@ services:
 
 ### 15.3 Cloud Deployment Considerations
 
-| Aspect | Recommendation | Notes |
-| ------ | -------------- | ----- |
-| **Compute** | Azure Container Apps / AWS ECS | Serverless container hosting |
-| **Redis** | Azure Cache for Redis / AWS ElastiCache | Managed Redis with HA |
-| **Logs** | Grafana Cloud or self-hosted Loki | Managed option reduces ops burden |
-| **Secrets** | Azure Key Vault / AWS Secrets Manager | Never store in env vars in prod |
-| **CI/CD** | GitHub Actions / Azure DevOps | Docker build → push → deploy |
+| Aspect            | Recommendation                          | Notes                             |
+| ----------------- | --------------------------------------- | --------------------------------- |
+| **Compute** | Azure Container Apps / AWS ECS          | Serverless container hosting      |
+| **Redis**   | Azure Cache for Redis / AWS ElastiCache | Managed Redis with HA             |
+| **Logs**    | Grafana Cloud or self-hosted Loki       | Managed option reduces ops burden |
+| **Secrets** | Azure Key Vault / AWS Secrets Manager   | Never store in env vars in prod   |
+| **CI/CD**   | GitHub Actions / Azure DevOps           | Docker build → push → deploy    |
 
 ### 15.4 API Documentation (Swagger/OpenAPI)
 
@@ -1269,11 +1270,11 @@ Swagger:
     Title: "SafeTravel Bangladesh API"
     Version: "v1"
     Description: "Travel recommendations based on weather and air quality"
-    
+  
     Endpoints:
         SwaggerUI: /swagger
         OpenAPI JSON: /swagger/v1/swagger.json
-    
+  
     Features:
         - Request/response examples
         - Schema validation
@@ -1283,23 +1284,54 @@ Swagger:
 
 **Access:**
 
-| Environment | Swagger URL |
-| ----------- | ----------- |
-| Local | `http://localhost:5000/swagger` |
-| Production | Disabled or protected behind auth |
+| Environment | Swagger URL                       |
+| ----------- | --------------------------------- |
+| Local       | `http://localhost:5000/swagger` |
+| Production  | Disabled or protected behind auth |
 
 > [!NOTE]
 > Swagger UI is enabled in Development environment only. In Production, only the OpenAPI JSON spec is available for client SDK generation.
 
 ---
 
-## 16. Acceptance Criteria\r\n\r\nThis section maps technical design decisions back to the original requirements.\r\n\r\n### 16.1 Performance Requirements\r\n\r\n| Requirement | Target | Design Solution | Acceptance Test |\r\n|-------------|--------|-----------------|-----------------|\r\n| API Response Time | ≤ 500ms (p99) | Pre-computed Redis cache, no runtime API calls | `wrk` load test: p99 < 500ms at 100 RPS |\r\n| Cache Hit Rate | > 99% | Background refresh every 10 min, 20 min TTL | Monitor `cache_hit_ratio` metric > 0.99 |\r\n| Throughput | 1000 RPS | Stateless API, Redis-backed cache | `wrk` load test: sustained 1000 RPS |\r\n\r\n### 16.2 Functional Requirements\r\n\r\n| Requirement | Source | Implementation | Verification |\r\n|-------------|--------|----------------|--------------|\r\n| Top 10 Districts | Req 2.4 | `GET /api/v1/districts/top10` returns ranked list | Unit test: verify sorting by temp ASC, PM2.5 ASC |\r\n| Travel Recommendation | Req 2.5 | `POST /api/v1/travel/recommendation` with strict AND logic | Unit test: all 4 combination scenarios |\r\n| 7-Day Forecast | Req 2.2 | Today + next 6 days at 14:00 local time | Integration test: verify date range in API response |\r\n| District Lookup | Req 2.6 | Case-insensitive dictionary lookup | Unit test: \"Dhaka\", \"DHAKA\", \"dhaka\" all resolve |\r\n| Date Validation | Req 2.7 | 400 error if travelDate > 7 days | Unit test: day 8 returns 400 |\r\n\r\n### 16.3 Reliability Requirements\r\n\r\n| Requirement | Target | Design Solution | Verification |\r\n|-------------|--------|-----------------|--------------|\r\n| API Availability | 99.9% | Cache-first with stale fallback | Integration test: API responds when Redis down |\r\n| Job Crash Recovery | 100% | Hangfire Redis persistence | Manual test: restart app mid-job, verify resume |\r\n| External API Failure | Graceful | Retry policies + cached fallback | Integration test: mock 503, verify stale response |\r\n\r\n### 16.4 Traceability Matrix\r\n\r\n| Req ID | Requirement | TDD Section |\r\n|--------|-------------|-------------|\r\n| 2.1 | 500ms performance constraint | §2.1, §7 |\r\n| 2.2 | 7-day average temperature at 2 PM | §9.2 |\r\n| 2.3 | PM2.5 at 2 PM averaged | §9.2 |\r\n| 2.4 | Coolest + cleanest ranking | §9.1 |\r\n| 2.5 | Strict AND recommendation logic | §9.3 |\r\n| 2.6 | District name input (case-insensitive) | §5.5 |\r\n| 2.7 | 7-day date validation | §13.3 |\r\n| 2.8 | Timezone handling (Asia/Dhaka) | §8.2, §10.2 |\r\n| 2.9 | Open-Meteo rate limits | §10.1 |\r\n| 2.10 | URL-based API versioning | §8.1 |\r\n| 2.11 | External API failure handling | §11 |\r\n| 2.12 | Serilog + Grafana/Loki logging | §12.1 |\r\n\r\n---\r\n\r\n## 17. Future Improvements
+## 16. Acceptance Criteria
 
-| Improvement                   | Benefit                  | Effort |
-| ----------------------------- | ------------------------ | ------ |
-| **Multi-region Redis**  | Global latency reduction | High   |
-| **Historical data API** | Trend analysis           | Medium |
-| **Real-time weather updates** | Sub-minute freshness | High   |
+This section maps technical design decisions back to the original requirements.
+
+### 16.1 Performance Requirements
+
+| Requirement       | Target         | Design Solution                                | Acceptance Test                           |
+| ----------------- | -------------- | ---------------------------------------------- | ----------------------------------------- |
+| API Response Time | ≤ 500ms (p99) | Pre-computed Redis cache, no runtime API calls | `wrk` load test: p99 < 500ms at 100 RPS |
+| Cache Hit Rate    | > 99%          | Background refresh every 10 min, 20 min TTL    | Monitor `cache_hit_ratio` metric > 0.99 |
+| Throughput        | 1000 RPS       | Stateless API, Redis-backed cache              | `wrk` load test: sustained 1000 RPS     |
+
+### 16.2 Functional Requirements
+
+| Requirement           | Source  | Implementation                                               | Verification                                        |
+| --------------------- | ------- | ------------------------------------------------------------ | --------------------------------------------------- |
+| Top 10 Districts      | Req 2.4 | `GET /api/v1/districts/top10` returns ranked list          | Unit test: verify sorting by temp ASC, PM2.5 ASC    |
+| Travel Recommendation | Req 2.5 | `POST /api/v1/travel/recommendation` with strict AND logic | Unit test: all 4 combination scenarios              |
+| 7-Day Forecast        | Req 2.2 | Today + next 6 days at 14:00 local time                      | Integration test: verify date range in API response |
+| District Lookup       | Req 2.6 | Case-insensitive dictionary lookup                           | Unit test: "Dhaka", "DHAKA", "dhaka" all resolve    |
+| Date Validation       | Req 2.7 | 400 error if travelDate > 7 days                             | Unit test: day 8 returns 400                        |
+
+### 16.3 Reliability Requirements
+
+| Requirement          | Target   | Design Solution                  | Verification                                      |
+| -------------------- | -------- | -------------------------------- | ------------------------------------------------- |
+| API Availability     | 99.9%    | Cache-first with stale fallback  | Integration test: API responds when Redis down    |
+| Job Crash Recovery   | 100%     | Hangfire Redis persistence       | Manual test: restart app mid-job, verify resume   |
+| External API Failure | Graceful | Retry policies + cached fallback | Integration test: mock 503, verify stale response |
+
+## 17. Future Improvements
+
+| Improvement                         | Benefit                  | Effort |
+| ----------------------------------- | ------------------------ | ------ |
+| **Multi-region Redis**        | Global latency reduction | High   |
+| **Historical data API**       | Trend analysis           | Medium |
+| **Real-time weather updates** | Sub-minute freshness     | High   |
+
 ---
 
 ## Appendix A: District Data Source
@@ -1346,28 +1378,28 @@ GET https://air-quality-api.open-meteo.com/v1/air-quality
 
 ## Appendix C: Glossary
 
-| Term | Definition |
-|------|------------|
-| **CQRS** | Command Query Responsibility Segregation - a pattern that separates read and write operations into different models |
-| **LiteBus** | A lightweight in-process message bus for .NET, used here for dispatching queries to handlers |
-| **PM2.5** | Particulate Matter 2.5 - fine inhalable particles with diameters ≤2.5 micrometers, a key air quality metric |
-| **Cache-Aside** | A caching strategy where the application checks the cache first, and on miss, fetches from the source and populates the cache |
-| **TTL** | Time To Live - duration after which cached data expires automatically |
-| **Staleness Threshold** | The maximum acceptable age of cached data before it's considered stale and requires refresh (12 minutes in this system) |
-| **Idempotent** | An operation that produces the same result regardless of how many times it's executed |
-| **Circuit Breaker** | A resilience pattern that stops requests to a failing service to prevent cascade failures |
-| **Polly** | A .NET resilience library providing retry, circuit breaker, timeout, and fallback policies |
-| **Hangfire** | A .NET library for background job processing with persistence and automatic retries |
-| **Redis** | An in-memory data structure store used as a cache and message broker |
-| **Loki** | A log aggregation system designed for cloud-native environments, inspired by Prometheus |
-| **LogQL** | Loki's query language for filtering and analyzing log data |
-| **ETag** | Entity Tag - an HTTP header for cache validation, enabling conditional requests |
-| **Brotli** | A compression algorithm that achieves better compression ratios than gzip |
-| **Open-Meteo** | A free weather API providing forecasts and historical weather data |
-| **Minimal APIs** | ASP.NET Core's lightweight approach to building HTTP APIs with minimal ceremony |
-| **Clean Architecture** | An architectural pattern emphasizing separation of concerns and dependency inversion |
-| **p99** | 99th percentile - the value below which 99% of observations fall (used for latency metrics) |
-| **RPS** | Requests Per Second - a throughput measurement |
+| Term                          | Definition                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| **CQRS**                | Command Query Responsibility Segregation - a pattern that separates read and write operations into different models           |
+| **LiteBus**             | A lightweight in-process message bus for .NET, used here for dispatching queries to handlers                                  |
+| **PM2.5**               | Particulate Matter 2.5 - fine inhalable particles with diameters ≤2.5 micrometers, a key air quality metric                  |
+| **Cache-Aside**         | A caching strategy where the application checks the cache first, and on miss, fetches from the source and populates the cache |
+| **TTL**                 | Time To Live - duration after which cached data expires automatically                                                         |
+| **Staleness Threshold** | The maximum acceptable age of cached data before it's considered stale and requires refresh (12 minutes in this system)       |
+| **Idempotent**          | An operation that produces the same result regardless of how many times it's executed                                         |
+| **Circuit Breaker**     | A resilience pattern that stops requests to a failing service to prevent cascade failures                                     |
+| **Polly**               | A .NET resilience library providing retry, circuit breaker, timeout, and fallback policies                                    |
+| **Hangfire**            | A .NET library for background job processing with persistence and automatic retries                                           |
+| **Redis**               | An in-memory data structure store used as a cache and message broker                                                          |
+| **Loki**                | A log aggregation system designed for cloud-native environments, inspired by Prometheus                                       |
+| **LogQL**               | Loki's query language for filtering and analyzing log data                                                                    |
+| **ETag**                | Entity Tag - an HTTP header for cache validation, enabling conditional requests                                               |
+| **Brotli**              | A compression algorithm that achieves better compression ratios than gzip                                                     |
+| **Open-Meteo**          | A free weather API providing forecasts and historical weather data                                                            |
+| **Minimal APIs**        | ASP.NET Core's lightweight approach to building HTTP APIs with minimal ceremony                                               |
+| **Clean Architecture**  | An architectural pattern emphasizing separation of concerns and dependency inversion                                          |
+| **p99**                 | 99th percentile - the value below which 99% of observations fall (used for latency metrics)                                   |
+| **RPS**                 | Requests Per Second - a throughput measurement                                                                                |
 
 ---
 
