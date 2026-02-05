@@ -52,7 +52,7 @@
 |:------:|------|
 | [x] | Implement OpenMeteoWeatherClient with Polly resilience |
 | [x] | Implement OpenMeteoAirQualityClient |
-| [ ] | Implement RedisWeatherDataCache |
+| [x] | Implement RedisWeatherDataCache |
 | [x] | Implement DistrictDataProvider (JSON loader + in-memory dictionary) |
 | [x] | Create DI registration extension |
 | [ ] | Write Infrastructure.Tests |
