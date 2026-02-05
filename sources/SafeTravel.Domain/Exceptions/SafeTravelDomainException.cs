@@ -6,7 +6,7 @@ namespace SafeTravel.Domain.Exceptions;
 public abstract class SafeTravelDomainException : Exception
 {
     protected SafeTravelDomainException(string message) : base(message) { }
-    
-    protected SafeTravelDomainException(string message, Exception innerException) 
+
+    protected SafeTravelDomainException(string message, Exception innerException)
         : base(message, innerException) { }
 }

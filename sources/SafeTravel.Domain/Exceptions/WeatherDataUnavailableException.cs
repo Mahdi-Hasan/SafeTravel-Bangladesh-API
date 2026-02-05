@@ -7,7 +7,7 @@ public sealed class WeatherDataUnavailableException : SafeTravelDomainException
 {
     public WeatherDataUnavailableException(string message) : base(message) { }
 
-    public WeatherDataUnavailableException(string message, Exception innerException) 
+    public WeatherDataUnavailableException(string message, Exception innerException)
         : base(message, innerException) { }
 
     public static WeatherDataUnavailableException CacheEmpty() =>

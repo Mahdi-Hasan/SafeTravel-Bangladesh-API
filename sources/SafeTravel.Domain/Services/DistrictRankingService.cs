@@ -54,6 +54,6 @@ public sealed class DistrictRankingService
         int count = 10)
     {
         var allRankings = ComputeRankings(districtWeatherData);
-        return allRankings.Take(count).ToList();
+        return [.. allRankings.Take(count)];
     }
 }
