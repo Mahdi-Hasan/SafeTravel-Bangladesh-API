@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.Exceptions;
 using SafeTravel.Domain.ValueObjects;
 
@@ -17,9 +17,9 @@ public class DateRangeTests
         var range = DateRange.Create(start, end);
 
         // Assert
-        range.Start.Should().Be(start);
-        range.End.Should().Be(end);
-        range.TotalDays.Should().Be(6);
+        range.Start.ShouldBe(start);
+        range.End.ShouldBe(end);
+        range.TotalDays.ShouldBe(6);
     }
 
     [Fact]
@@ -30,8 +30,7 @@ public class DateRangeTests
         var end = new DateOnly(2026, 2, 5);
 
         // Act & Assert
-        var act = () => DateRange.Create(start, end);
-        act.Should().Throw<InvalidDateRangeException>();
+        Should.Throw<InvalidDateRangeException>(() => DateRange.Create(start, end));
     }
 
     [Fact]
@@ -42,8 +41,7 @@ public class DateRangeTests
         var end = new DateOnly(2026, 2, 10); // 10 days > 7 max
 
         // Act & Assert
-        var act = () => DateRange.Create(start, end);
-        act.Should().Throw<InvalidDateRangeException>();
+        Should.Throw<InvalidDateRangeException>(() => DateRange.Create(start, end));
     }
 
     [Theory]
@@ -55,8 +53,8 @@ public class DateRangeTests
         var range = DateRange.FromToday(days);
 
         // Assert
-        range.TotalDays.Should().Be(days);
-        range.Start.Should().Be(DateOnly.FromDateTime(DateTime.UtcNow));
+        range.TotalDays.ShouldBe(days);
+        range.Start.ShouldBe(DateOnly.FromDateTime(DateTime.UtcNow));
     }
 
     [Theory]
@@ -65,8 +63,7 @@ public class DateRangeTests
     public void FromToday_WithInvalidDays_ShouldThrow(int days)
     {
         // Act & Assert
-        var act = () => DateRange.FromToday(days);
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        Should.Throw<ArgumentOutOfRangeException>(() => DateRange.FromToday(days));
     }
 
     [Fact]
@@ -78,9 +75,9 @@ public class DateRangeTests
         var range = DateRange.Create(start, end);
 
         // Act & Assert
-        range.Contains(new DateOnly(2026, 2, 7)).Should().BeTrue();
-        range.Contains(start).Should().BeTrue();
-        range.Contains(end).Should().BeTrue();
+        range.Contains(new DateOnly(2026, 2, 7)).ShouldBeTrue();
+        range.Contains(start).ShouldBeTrue();
+        range.Contains(end).ShouldBeTrue();
     }
 
     [Fact]
@@ -92,8 +89,8 @@ public class DateRangeTests
         var range = DateRange.Create(start, end);
 
         // Act & Assert
-        range.Contains(new DateOnly(2026, 2, 4)).Should().BeFalse();
-        range.Contains(new DateOnly(2026, 2, 11)).Should().BeFalse();
+        range.Contains(new DateOnly(2026, 2, 4)).ShouldBeFalse();
+        range.Contains(new DateOnly(2026, 2, 11)).ShouldBeFalse();
     }
 
     [Fact]
@@ -108,10 +105,9 @@ public class DateRangeTests
         var dates = range.GetDates().ToList();
 
         // Assert
-        dates.Should().HaveCount(3);
-        dates.Should().ContainInOrder(
-            new DateOnly(2026, 2, 5),
-            new DateOnly(2026, 2, 6),
-            new DateOnly(2026, 2, 7));
+        dates.Count.ShouldBe(3);
+        dates[0].ShouldBe(new DateOnly(2026, 2, 5));
+        dates[1].ShouldBe(new DateOnly(2026, 2, 6));
+        dates[2].ShouldBe(new DateOnly(2026, 2, 7));
     }
 }

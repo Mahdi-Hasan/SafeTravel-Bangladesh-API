@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.Exceptions;
 using SafeTravel.Domain.Interfaces;
 using SafeTravel.Domain.Services;
@@ -20,8 +20,8 @@ public class WeatherAggregatorTests
         var result = _aggregator.AggregateToAverage(weatherData, airQualityData);
 
         // Assert
-        result.Temperature.Celsius.Should().Be(25.0);
-        result.PM25.Value.Should().Be(15.0);
+        result.Temperature.Celsius.ShouldBe(25.0);
+        result.PM25.Value.ShouldBe(15.0);
     }
 
     [Fact]
@@ -32,8 +32,8 @@ public class WeatherAggregatorTests
         var airQualityData = new List<HourlyAirQualityData>();
 
         // Act & Assert
-        var act = () => _aggregator.AggregateToAverage(weatherData, airQualityData);
-        act.Should().Throw<InsufficientDataException>();
+        Should.Throw<InsufficientDataException>(() =>
+            _aggregator.AggregateToAverage(weatherData, airQualityData));
     }
 
     [Fact]
@@ -57,9 +57,9 @@ public class WeatherAggregatorTests
         var result = _aggregator.GetSnapshotForDate(weatherData, airQualityData, targetDate);
 
         // Assert
-        result.Date.Should().Be(targetDate);
-        result.Temperature.Celsius.Should().Be(28.5);
-        result.PM25.Value.Should().Be(22.3);
+        result.Date.ShouldBe(targetDate);
+        result.Temperature.Celsius.ShouldBe(28.5);
+        result.PM25.Value.ShouldBe(22.3);
     }
 
     [Fact]
@@ -80,8 +80,8 @@ public class WeatherAggregatorTests
         };
 
         // Act & Assert
-        var act = () => _aggregator.GetSnapshotForDate(weatherData, airQualityData, targetDate);
-        act.Should().Throw<InsufficientDataException>();
+        Should.Throw<InsufficientDataException>(() =>
+            _aggregator.GetSnapshotForDate(weatherData, airQualityData, targetDate));
     }
 
     [Fact]
@@ -101,9 +101,9 @@ public class WeatherAggregatorTests
         var result = _aggregator.ExtractValuesAtHour(weatherData, 14);
 
         // Assert
-        result.Should().HaveCount(2);
-        result.Should().Contain(25.0);
-        result.Should().Contain(26.0);
+        result.Count.ShouldBe(2);
+        result.ShouldContain(25.0);
+        result.ShouldContain(26.0);
     }
 
     private static List<HourlyWeatherData> CreateHourlyWeatherData(int days, double temp)

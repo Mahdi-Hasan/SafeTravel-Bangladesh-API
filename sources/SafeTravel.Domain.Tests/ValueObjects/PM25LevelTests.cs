@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.ValueObjects;
 using static SafeTravel.Domain.ValueObjects.PM25Level;
 
@@ -16,15 +16,14 @@ public class PM25LevelTests
         var pm25 = PM25Level.Create(value);
 
         // Assert
-        pm25.Value.Should().Be(value);
+        pm25.Value.ShouldBe(value);
     }
 
     [Fact]
     public void Create_WithNegativeValue_ShouldThrow()
     {
         // Act & Assert
-        var act = () => PM25Level.Create(-1);
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        Should.Throw<ArgumentOutOfRangeException>(() => PM25Level.Create(-1));
     }
 
     [Theory]
@@ -44,7 +43,7 @@ public class PM25LevelTests
         var pm25 = PM25Level.Create(value);
 
         // Act & Assert
-        pm25.GetAirQualityCategory().Should().Be(expected);
+        pm25.GetAirQualityCategory().ShouldBe(expected);
     }
 
     [Theory]
@@ -58,6 +57,6 @@ public class PM25LevelTests
         var pm2 = PM25Level.Create(otherValue);
 
         // Act & Assert
-        pm1.IsCleanerThan(pm2).Should().Be(expected);
+        pm1.IsCleanerThan(pm2).ShouldBe(expected);
     }
 }
