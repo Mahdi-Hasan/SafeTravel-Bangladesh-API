@@ -124,7 +124,7 @@ flowchart TB
 
 | Variable                       | Description                                             | Default Value                                                                                     |
 | ------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `CACHE_STALENESS_MINUTES`    | Cache freshness threshold in minutes (integer; 1–1440) | `30`                                                                                            |
+| `CACHE_STALENESS_MINUTES`    | Cache freshness threshold in minutes (integer; 1–1440) | 12                                                                                                |
 | `DISTRICT_DATA_URL`          | URL to district coordinates JSON                        | `https://raw.githubusercontent.com/strativ-dev/technical-screening-test/main/bd-districts.json` |
 | `OPENMETEO_WEATHER_BASE_URL` | Open-Meteo Weather API base URL                         | `https://api.open-meteo.com/v1/`                                                                |
 | `OPENMETEO_AIR_QUALITY_URL`  | Open-Meteo Air Quality API base URL                     | `https://air-quality-api.open-meteo.com/v1/`                                                    |
@@ -239,4 +239,4 @@ GetDistrictByName(name):
 
 ---
 
-**Next:** [Data & Caching](./02_data_and_caching.md)
+**Next:** [Data &amp; Caching](./02_data_and_caching.md)

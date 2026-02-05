@@ -1,3 +1,4 @@
+using SafeTravel.Domain;
 using SafeTravel.Domain.Entities;
 using SafeTravel.Domain.Exceptions;
 using SafeTravel.Domain.Interfaces;
@@ -9,12 +10,10 @@ namespace SafeTravel.Application.Services;
 
 /// <summary>
 /// Implements cache-aside pattern for weather data retrieval.
-/// 12-minute staleness threshold with manual data loader fallback.
+/// Uses SafeTravelConstants for staleness threshold with manual data loader fallback.
 /// </summary>
 public sealed class WeatherDataService : IWeatherDataService
 {
-    private static readonly TimeSpan StalenessThreshold = TimeSpan.FromMinutes(12);
-
     private readonly IWeatherDataCache _cache;
     private readonly IOpenMeteoClient _openMeteoClient;
     private readonly IDistrictRepository _districtRepository;
@@ -93,9 +92,9 @@ public sealed class WeatherDataService : IWeatherDataService
         return await GetWeatherForCoordinatesAsync(district.Coordinates, date, cancellationToken);
     }
 
-    private bool IsStale(DateTime generatedAt)
+    private static bool IsStale(DateTime generatedAt)
     {
-        return DateTime.UtcNow - generatedAt > StalenessThreshold;
+        return DateTime.UtcNow - generatedAt > SafeTravelConstants.CacheStalenessThreshold;
     }
 
     private async Task<CachedRankings> ManualDataLoadAsync(CancellationToken cancellationToken)
@@ -103,8 +102,8 @@ public sealed class WeatherDataService : IWeatherDataService
         var districts = _districtRepository.GetAll();
         var coordinates = districts.Select(d => d.Coordinates).ToList();
 
-        var weatherTask = _openMeteoClient.GetBulkForecastAsync(coordinates, days: 7, cancellationToken);
-        var airQualityTask = _openMeteoClient.GetBulkAirQualityAsync(coordinates, days: 7, cancellationToken);
+        var weatherTask = _openMeteoClient.GetBulkForecastAsync(coordinates, days: SafeTravelConstants.ForecastDays, cancellationToken);
+        var airQualityTask = _openMeteoClient.GetBulkAirQualityAsync(coordinates, days: SafeTravelConstants.ForecastDays, cancellationToken);
 
         await Task.WhenAll(weatherTask, airQualityTask);
 
@@ -136,7 +135,7 @@ public sealed class WeatherDataService : IWeatherDataService
         var rankings = new CachedRankings(
             rankedDistricts,
             GeneratedAt: now,
-            ExpiresAt: now.AddMinutes(20));
+            ExpiresAt: now.Add(SafeTravelConstants.DefaultCacheTtl));
 
         // Update cache
         _cache.SetRankings(rankings);
