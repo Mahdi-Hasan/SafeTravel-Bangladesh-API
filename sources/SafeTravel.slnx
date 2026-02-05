@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="SafeTravel.Domain.Tests/SafeTravel.Domain.Tests.csproj" />
+  <Project Path="SafeTravel.Domain/SafeTravel.Domain.csproj" />
+</Solution>
