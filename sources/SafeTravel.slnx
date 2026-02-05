@@ -5,5 +5,7 @@
   <Project Path="SafeTravel.Application.Tests/SafeTravel.Application.Tests.csproj" />
   <Project Path="SafeTravel.Infrastructure/SafeTravel.Infrastructure.csproj" />
   <Project Path="SafeTravel.Infrastructure.Tests/SafeTravel.Infrastructure.Tests.csproj" />
+  <Project Path="SafeTravel.Api/SafeTravel.Api.csproj" />
+  <Project Path="SafeTravel.Api.Tests/SafeTravel.Api.Tests.csproj" />
 </Solution>
 
