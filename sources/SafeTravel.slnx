@@ -3,4 +3,6 @@
   <Project Path="SafeTravel.Domain.Tests/SafeTravel.Domain.Tests.csproj" />
   <Project Path="SafeTravel.Application/SafeTravel.Application.csproj" />
   <Project Path="SafeTravel.Application.Tests/SafeTravel.Application.Tests.csproj" />
+  <Project Path="SafeTravel.Infrastructure/SafeTravel.Infrastructure.csproj" />
 </Solution>
+

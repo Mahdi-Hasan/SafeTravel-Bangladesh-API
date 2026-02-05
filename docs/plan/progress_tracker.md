@@ -53,8 +53,8 @@
 | [ ] | Implement OpenMeteoWeatherClient with Polly resilience |
 | [ ] | Implement OpenMeteoAirQualityClient |
 | [ ] | Implement RedisWeatherDataCache |
-| [ ] | Implement DistrictDataProvider (JSON loader + in-memory dictionary) |
-| [ ] | Create DI registration extension |
+| [x] | Implement DistrictDataProvider (JSON loader + in-memory dictionary) |
+| [x] | Create DI registration extension |
 | [ ] | Write Infrastructure.Tests |
 
 **Phase 3 Checkpoint:** `dotnet test SafeTravel.Infrastructure.Tests` → All pass ✅
