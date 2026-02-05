@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.Entities;
 using SafeTravel.Domain.Models;
 using SafeTravel.Domain.Services;
@@ -20,7 +20,7 @@ public class DistrictRankingServiceTests
         var result = _service.ComputeRankings(data);
 
         // Assert
-        result.Should().BeEmpty();
+        result.ShouldBeEmpty();
     }
 
     [Fact]
@@ -42,10 +42,10 @@ public class DistrictRankingServiceTests
         var result = _service.ComputeRankings(data);
 
         // Assert
-        result.Should().HaveCount(3);
-        result[0].District.Name.Should().Be("Sylhet"); // Rank 1 (25°C)
-        result[1].District.Name.Should().Be("Rangpur"); // Rank 2 (28°C)
-        result[2].District.Name.Should().Be("Dhaka"); // Rank 3 (30°C)
+        result.Count.ShouldBe(3);
+        result[0].District.Name.ShouldBe("Sylhet"); // Rank 1 (25°C)
+        result[1].District.Name.ShouldBe("Rangpur"); // Rank 2 (28°C)
+        result[2].District.Name.ShouldBe("Dhaka"); // Rank 3 (30°C)
     }
 
     [Fact]
@@ -65,8 +65,8 @@ public class DistrictRankingServiceTests
         var result = _service.ComputeRankings(data);
 
         // Assert
-        result[0].District.Name.Should().Be("District B"); // Better air quality wins
-        result[1].District.Name.Should().Be("District A");
+        result[0].District.Name.ShouldBe("District B"); // Better air quality wins
+        result[1].District.Name.ShouldBe("District A");
     }
 
     [Fact]
@@ -88,9 +88,9 @@ public class DistrictRankingServiceTests
         var result = _service.ComputeRankings(data);
 
         // Assert
-        result[0].Rank.Should().Be(1);
-        result[1].Rank.Should().Be(2);
-        result[2].Rank.Should().Be(3);
+        result[0].Rank.ShouldBe(1);
+        result[1].Rank.ShouldBe(2);
+        result[2].Rank.ShouldBe(3);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class DistrictRankingServiceTests
         var result = _service.GetTopDistricts(districts, 10);
 
         // Assert
-        result.Should().HaveCount(10);
-        result.All(r => r.Rank <= 10).Should().BeTrue();
+        result.Count.ShouldBe(10);
+        result.All(r => r.Rank <= 10).ShouldBeTrue();
     }
 }

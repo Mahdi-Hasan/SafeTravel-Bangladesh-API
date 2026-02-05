@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.Models;
 using SafeTravel.Domain.Services;
 
@@ -19,9 +19,9 @@ public class TravelRecommendationPolicyTests
         var result = _policy.Evaluate(origin, destination, "Sylhet");
 
         // Assert
-        result.IsRecommended.Should().BeTrue();
-        result.Reason.Should().Contain("cooler");
-        result.Reason.Should().Contain("air quality");
+        result.IsRecommended.ShouldBeTrue();
+        result.Reason.ShouldContain("cooler");
+        result.Reason.ShouldContain("air quality");
     }
 
     [Fact]
@@ -35,8 +35,8 @@ public class TravelRecommendationPolicyTests
         var result = _policy.Evaluate(origin, destination, "Sylhet");
 
         // Assert
-        result.IsRecommended.Should().BeFalse();
-        result.Reason.Should().Contain("PM2.5");
+        result.IsRecommended.ShouldBeFalse();
+        result.Reason.ShouldContain("PM2.5");
     }
 
     [Fact]
@@ -50,8 +50,8 @@ public class TravelRecommendationPolicyTests
         var result = _policy.Evaluate(origin, destination, "Sylhet");
 
         // Assert
-        result.IsRecommended.Should().BeFalse();
-        result.Reason.Should().Contain("warmer");
+        result.IsRecommended.ShouldBeFalse();
+        result.Reason.ShouldContain("warmer");
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class TravelRecommendationPolicyTests
         var result = _policy.Evaluate(origin, destination, "Sylhet");
 
         // Assert
-        result.IsRecommended.Should().BeFalse();
+        result.IsRecommended.ShouldBeFalse();
     }
 
     [Fact]
@@ -79,6 +79,6 @@ public class TravelRecommendationPolicyTests
         var result = _policy.Evaluate(origin, destination, "Sylhet");
 
         // Assert
-        result.IsRecommended.Should().BeFalse();
+        result.IsRecommended.ShouldBeFalse();
     }
 }

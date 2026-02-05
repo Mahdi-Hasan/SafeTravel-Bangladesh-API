@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.ValueObjects;
 
 namespace SafeTravel.Domain.Tests.ValueObjects;
@@ -16,8 +16,8 @@ public class CoordinatesTests
         var coordinates = Coordinates.Create(lat, lon);
 
         // Assert
-        coordinates.Latitude.Should().Be(lat);
-        coordinates.Longitude.Should().Be(lon);
+        coordinates.Latitude.ShouldBe(lat);
+        coordinates.Longitude.ShouldBe(lon);
     }
 
     [Theory]
@@ -26,9 +26,8 @@ public class CoordinatesTests
     public void Create_WithInvalidLatitude_ShouldThrow(double lat, double lon)
     {
         // Act & Assert
-        var act = () => Coordinates.Create(lat, lon);
-        act.Should().Throw<ArgumentOutOfRangeException>()
-            .WithParameterName("latitude");
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => Coordinates.Create(lat, lon));
+        ex.ParamName.ShouldBe("latitude");
     }
 
     [Theory]
@@ -37,9 +36,8 @@ public class CoordinatesTests
     public void Create_WithInvalidLongitude_ShouldThrow(double lat, double lon)
     {
         // Act & Assert
-        var act = () => Coordinates.Create(lat, lon);
-        act.Should().Throw<ArgumentOutOfRangeException>()
-            .WithParameterName("longitude");
+        var ex = Should.Throw<ArgumentOutOfRangeException>(() => Coordinates.Create(lat, lon));
+        ex.ParamName.ShouldBe("longitude");
     }
 
     [Fact]
@@ -49,7 +47,7 @@ public class CoordinatesTests
         var dhaka = Coordinates.Create(23.8103, 90.4125);
 
         // Act & Assert
-        dhaka.IsWithinBangladesh().Should().BeTrue();
+        dhaka.IsWithinBangladesh().ShouldBeTrue();
     }
 
     [Fact]
@@ -59,7 +57,7 @@ public class CoordinatesTests
         var london = Coordinates.Create(51.5074, -0.1278);
 
         // Act & Assert
-        london.IsWithinBangladesh().Should().BeFalse();
+        london.IsWithinBangladesh().ShouldBeFalse();
     }
 
     [Fact]
@@ -70,8 +68,8 @@ public class CoordinatesTests
         var coord2 = Coordinates.Create(23.8103, 90.4125);
 
         // Assert
-        coord1.Should().Be(coord2);
-        (coord1 == coord2).Should().BeTrue();
+        coord1.ShouldBe(coord2);
+        (coord1 == coord2).ShouldBeTrue();
     }
 
     [Fact]
@@ -81,6 +79,6 @@ public class CoordinatesTests
         var coords = Coordinates.Create(23.8103, 90.4125);
 
         // Act & Assert
-        coords.ToString().Should().Be("(23.8103, 90.4125)");
+        coords.ToString().ShouldBe("(23.8103, 90.4125)");
     }
 }

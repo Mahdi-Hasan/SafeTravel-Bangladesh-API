@@ -1,4 +1,4 @@
-using FluentAssertions;
+using Shouldly;
 using SafeTravel.Domain.ValueObjects;
 
 namespace SafeTravel.Domain.Tests.ValueObjects;
@@ -16,7 +16,7 @@ public class TemperatureTests
         var temp = Temperature.FromCelsius(celsius);
 
         // Assert
-        temp.Celsius.Should().Be(celsius);
+        temp.Celsius.ShouldBe(celsius);
     }
 
     [Theory]
@@ -25,8 +25,7 @@ public class TemperatureTests
     public void FromCelsius_WithInvalidTemperature_ShouldThrow(double celsius)
     {
         // Act & Assert
-        var act = () => Temperature.FromCelsius(celsius);
-        act.Should().Throw<ArgumentOutOfRangeException>();
+        Should.Throw<ArgumentOutOfRangeException>(() => Temperature.FromCelsius(celsius));
     }
 
     [Fact]
@@ -39,7 +38,7 @@ public class TemperatureTests
         var fahrenheit = temp.ToFahrenheit();
 
         // Assert
-        fahrenheit.Should().Be(77); // 25°C = 77°F
+        fahrenheit.ShouldBe(77); // 25°C = 77°F
     }
 
     [Theory]
@@ -53,7 +52,7 @@ public class TemperatureTests
         var temp2 = Temperature.FromCelsius(otherTemp);
 
         // Act & Assert
-        temp1.IsCoolerThan(temp2).Should().Be(expected);
+        temp1.IsCoolerThan(temp2).ShouldBe(expected);
     }
 
     [Fact]
@@ -63,6 +62,6 @@ public class TemperatureTests
         var temp = Temperature.FromCelsius(25.5);
 
         // Act & Assert
-        temp.ToString().Should().Be("25.5°C");
+        temp.ToString().ShouldBe("25.5°C");
     }
 }
