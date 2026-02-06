@@ -34,7 +34,7 @@ public class WeatherDataServiceTests
     {
         // Arrange
         var freshRankings = CreateCachedRankings(DateTime.UtcNow.AddMinutes(-5)); // 5 min old
-        _cache.GetRankings().Returns(freshRankings);
+        _cache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns(freshRankings);
 
         // Act
         var result = await _service.GetRankingsAsync();
@@ -50,7 +50,7 @@ public class WeatherDataServiceTests
     {
         // Arrange
         var staleRankings = CreateCachedRankings(DateTime.UtcNow.AddMinutes(-15)); // 15 min old > 12 min threshold
-        _cache.GetRankings().Returns(staleRankings);
+        _cache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns(staleRankings);
 
         var districts = new List<District>
         {
@@ -72,7 +72,7 @@ public class WeatherDataServiceTests
     public async Task GetRankingsAsync_CacheMiss_ShouldTriggerManualLoad()
     {
         // Arrange
-        _cache.GetRankings().Returns((CachedRankings?)null);
+        _cache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns((CachedRankings?)null);
 
         var districts = new List<District>
         {
@@ -88,14 +88,14 @@ public class WeatherDataServiceTests
         // Assert
         await _openMeteoClient.Received(1)
             .GetBulkForecastAsync(Arg.Any<IEnumerable<Coordinates>>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
-        _cache.Received(1).SetRankings(Arg.Any<CachedRankings>());
+        await _cache.Received(1).SetRankingsAsync(Arg.Any<CachedRankings>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetRankingsAsync_ManualLoad_ShouldUpdateCache()
     {
         // Arrange
-        _cache.GetRankings().Returns((CachedRankings?)null);
+        _cache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns((CachedRankings?)null);
 
         var districts = new List<District>
         {
@@ -109,16 +109,16 @@ public class WeatherDataServiceTests
         await _service.GetRankingsAsync();
 
         // Assert
-        _cache.Received(1).SetRankings(Arg.Is<CachedRankings>(r =>
+        await _cache.Received(1).SetRankingsAsync(Arg.Is<CachedRankings>(r =>
             r.Rankings.Count == 1 &&
-            r.GeneratedAt <= DateTime.UtcNow));
+            r.GeneratedAt <= DateTime.UtcNow), Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task GetRankingsAsync_NoDistrictsWithData_ShouldThrow()
     {
         // Arrange
-        _cache.GetRankings().Returns((CachedRankings?)null);
+        _cache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns((CachedRankings?)null);
         _districtRepository.GetAll().Returns(new List<District>());
 
         var emptyWeatherResponse = new BulkWeatherResponse(
@@ -149,7 +149,7 @@ public class WeatherDataServiceTests
             [cachedSnapshot],
             DateTime.UtcNow);
 
-        _cache.GetDistrictForecast(district.Id).Returns(cachedForecast);
+        _cache.GetDistrictForecastAsync(district.Id, Arg.Any<CancellationToken>()).Returns(cachedForecast);
 
         // Act
         var result = await _service.GetWeatherForDistrictAsync(district, targetDate);

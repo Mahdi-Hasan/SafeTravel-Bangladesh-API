@@ -50,7 +50,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
         }
     }
 
-    public CachedRankings? GetRankings()
+    public async Task<CachedRankings?> GetRankingsAsync(CancellationToken cancellationToken = default)
     {
         if (_useInMemoryFallback)
         {
@@ -61,7 +61,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
 
         try
         {
-            var data = _database!.StringGet(Redis.RankingsKey);
+            var data = await _database!.StringGetAsync(Redis.RankingsKey).ConfigureAwait(false);
             if (data.IsNullOrEmpty)
             {
                 LogCacheAccess("GetRankings", Redis.RankingsKey, false);
@@ -79,7 +79,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
         }
     }
 
-    public void SetRankings(CachedRankings rankings)
+    public async Task SetRankingsAsync(CachedRankings rankings, CancellationToken cancellationToken = default)
     {
         var json = JsonSerializer.Serialize(rankings, JsonOptions);
 
@@ -92,10 +92,10 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
 
         try
         {
-            _database!.StringSet(
+            await _database!.StringSetAsync(
                 Redis.RankingsKey,
                 json,
-                SafeTravelConstants.DefaultCacheTtl);
+                SafeTravelConstants.DefaultCacheTtl).ConfigureAwait(false);
             _logger.LogDebug("Cached rankings in Redis with TTL {Ttl}", SafeTravelConstants.DefaultCacheTtl);
         }
         catch (Exception ex)
@@ -106,7 +106,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
         }
     }
 
-    public CachedDistrictForecast? GetDistrictForecast(string districtId)
+    public async Task<CachedDistrictForecast?> GetDistrictForecastAsync(string districtId, CancellationToken cancellationToken = default)
     {
         var key = string.Format(Redis.DistrictForecastKeyPattern, districtId);
 
@@ -119,7 +119,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
 
         try
         {
-            var data = _database!.StringGet(key);
+            var data = await _database!.StringGetAsync(key).ConfigureAwait(false);
             if (data.IsNullOrEmpty)
             {
                 LogCacheAccess("GetDistrictForecast", key, false);
@@ -137,7 +137,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
         }
     }
 
-    public void SetDistrictForecast(string districtId, CachedDistrictForecast forecast)
+    public async Task SetDistrictForecastAsync(string districtId, CachedDistrictForecast forecast, CancellationToken cancellationToken = default)
     {
         var key = string.Format(Redis.DistrictForecastKeyPattern, districtId);
         var json = JsonSerializer.Serialize(forecast, JsonOptions);
@@ -150,7 +150,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
 
         try
         {
-            _database!.StringSet(key, json, SafeTravelConstants.DefaultCacheTtl);
+            await _database!.StringSetAsync(key, json, SafeTravelConstants.DefaultCacheTtl).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -160,7 +160,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
         }
     }
 
-    public CacheMetadata? GetMetadata()
+    public async Task<CacheMetadata?> GetMetadataAsync(CancellationToken cancellationToken = default)
     {
         if (_useInMemoryFallback)
         {
@@ -169,7 +169,7 @@ public sealed class RedisWeatherDataCache : IWeatherDataCache, IDisposable
 
         try
         {
-            var data = _database!.StringGet(Redis.MetadataKey);
+            var data = await _database!.StringGetAsync(Redis.MetadataKey).ConfigureAwait(false);
             return data.IsNullOrEmpty
                 ? null
                 : JsonSerializer.Deserialize<CacheMetadata>(data.ToString(), JsonOptions);

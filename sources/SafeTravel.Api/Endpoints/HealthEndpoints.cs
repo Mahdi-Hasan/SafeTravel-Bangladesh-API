@@ -39,11 +39,11 @@ public static class HealthEndpoints
         return Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow });
     }
 
-    private static IResult ReadinessCheck(IWeatherDataCache cache)
+    private static async Task<IResult> ReadinessCheck(IWeatherDataCache cache, CancellationToken cancellationToken)
     {
         try
         {
-            var metadata = cache.GetMetadata();
+            var metadata = await cache.GetMetadataAsync(cancellationToken);
 
             if (metadata == null)
             {

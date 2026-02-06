@@ -14,7 +14,7 @@ public static class SafeTravelConstants
     /// <summary>
     /// Default cache TTL (time-to-live) for cached data.
     /// </summary>
-    public static readonly TimeSpan DefaultCacheTtl = TimeSpan.FromMinutes(20);
+    public static readonly TimeSpan DefaultCacheTtl = TimeSpan.FromMinutes(25);
 
     /// <summary>
     /// Number of days to fetch forecast data for.

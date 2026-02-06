@@ -22,7 +22,7 @@ public class ResilienceScenariosTests : IntegrationTestBase
         // Arrange - Pre-populate cache first (simulating warm cache)
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
         var rankings = TestDataBuilder.CreateCachedRankings(isStale: false);
-        cache.SetRankings(rankings);
+        await cache.SetRankingsAsync(rankings);
 
         // Now make Open-Meteo unavailable
         Factory.WireMockServer.SetupServiceUnavailable();
@@ -40,7 +40,7 @@ public class ResilienceScenariosTests : IntegrationTestBase
         // Arrange - Pre-populate cache
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
         var rankings = TestDataBuilder.CreateCachedRankings();
-        cache.SetRankings(rankings);
+        await cache.SetRankingsAsync(rankings);
 
         // Act
         var response = await Client.GetAsync("/api/v1/districts/top-10");
@@ -60,7 +60,7 @@ public class ResilienceScenariosTests : IntegrationTestBase
         // Ensure we have cache
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
         var rankings = TestDataBuilder.CreateCachedRankings();
-        cache.SetRankings(rankings);
+        await cache.SetRankingsAsync(rankings);
 
         // Act
         var response = await Client.GetAsync("/api/v1/districts/top-10");

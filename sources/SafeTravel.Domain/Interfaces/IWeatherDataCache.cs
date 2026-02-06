@@ -19,9 +19,9 @@ public sealed record CacheMetadata(
 
 public interface IWeatherDataCache
 {
-    CachedRankings? GetRankings();
-    void SetRankings(CachedRankings rankings);
-    CachedDistrictForecast? GetDistrictForecast(string districtId);
-    void SetDistrictForecast(string districtId, CachedDistrictForecast forecast);
-    CacheMetadata? GetMetadata();
+    Task<CachedRankings?> GetRankingsAsync(CancellationToken cancellationToken = default);
+    Task SetRankingsAsync(CachedRankings rankings, CancellationToken cancellationToken = default);
+    Task<CachedDistrictForecast?> GetDistrictForecastAsync(string districtId, CancellationToken cancellationToken = default);
+    Task SetDistrictForecastAsync(string districtId, CachedDistrictForecast forecast, CancellationToken cancellationToken = default);
+    Task<CacheMetadata?> GetMetadataAsync(CancellationToken cancellationToken = default);
 }

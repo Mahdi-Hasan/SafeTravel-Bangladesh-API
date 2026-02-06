@@ -28,7 +28,7 @@ public class TravelRecommendationScenariosTests : IntegrationTestBase
     {
         // Arrange - Set up cache with forecast data
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
-        cache.SetDistrictForecast("03", TestDataBuilder.CreateDistrictForecast(TestDataBuilder.Sylhet));
+        await cache.SetDistrictForecastAsync("03", TestDataBuilder.CreateDistrictForecast(TestDataBuilder.Sylhet));
 
 
         Factory.WireMockServer.SetupSuccessfulForecast(temperature: 30.0);

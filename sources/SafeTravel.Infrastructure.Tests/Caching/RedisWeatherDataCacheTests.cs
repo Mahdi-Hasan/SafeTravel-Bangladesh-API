@@ -18,11 +18,11 @@ public class RedisWeatherDataCacheTests
     }
 
     [Fact]
-    public void Constructor_WithNullConnectionString_UsesInMemoryFallback()
+    public async Task Constructor_WithNullConnectionString_UsesInMemoryFallback()
     {
         // Act
         using var cache = new RedisWeatherDataCache(_logger, null);
-        cache.GetRankings(); // Should not throw
+        await cache.GetRankingsAsync(); // Should not throw
 
         // Assert
         _logger.Received().Log(
@@ -34,20 +34,20 @@ public class RedisWeatherDataCacheTests
     }
 
     [Fact]
-    public void GetRankings_WhenEmptyCache_ReturnsNull()
+    public async Task GetRankingsAsync_WhenEmptyCache_ReturnsNull()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
 
         // Act
-        var result = cache.GetRankings();
+        var result = await cache.GetRankingsAsync();
 
         // Assert
         result.ShouldBeNull();
     }
 
     [Fact]
-    public void SetAndGetRankings_WithValidData_RoundTripsCorrectly()
+    public async Task SetAndGetRankingsAsync_WithValidData_RoundTripsCorrectly()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
@@ -55,8 +55,8 @@ public class RedisWeatherDataCacheTests
         var rankings = CreateTestRankings();
 
         // Act
-        cache.SetRankings(rankings);
-        var result = cache.GetRankings();
+        await cache.SetRankingsAsync(rankings);
+        var result = await cache.GetRankingsAsync();
 
         // Assert
         result.ShouldNotBeNull();
@@ -65,7 +65,7 @@ public class RedisWeatherDataCacheTests
     }
 
     [Fact]
-    public void GetRankings_WhenExpired_ReturnsNull()
+    public async Task GetRankingsAsync_WhenExpired_ReturnsNull()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
@@ -77,28 +77,28 @@ public class RedisWeatherDataCacheTests
         );
 
         // Act
-        cache.SetRankings(expiredRankings);
-        var result = cache.GetRankings();
+        await cache.SetRankingsAsync(expiredRankings);
+        var result = await cache.GetRankingsAsync();
 
         // Assert
         result.ShouldBeNull();
     }
 
     [Fact]
-    public void GetDistrictForecast_WhenEmpty_ReturnsNull()
+    public async Task GetDistrictForecastAsync_WhenEmpty_ReturnsNull()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
 
         // Act
-        var result = cache.GetDistrictForecast("dhaka");
+        var result = await cache.GetDistrictForecastAsync("dhaka");
 
         // Assert
         result.ShouldBeNull();
     }
 
     [Fact]
-    public void SetAndGetDistrictForecast_WithValidData_RoundTripsCorrectly()
+    public async Task SetAndGetDistrictForecastAsync_WithValidData_RoundTripsCorrectly()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
@@ -118,8 +118,8 @@ public class RedisWeatherDataCacheTests
         );
 
         // Act
-        cache.SetDistrictForecast(districtId, forecast);
-        var result = cache.GetDistrictForecast(districtId);
+        await cache.SetDistrictForecastAsync(districtId, forecast);
+        var result = await cache.GetDistrictForecastAsync(districtId);
 
         // Assert
         result.ShouldNotBeNull();
@@ -128,29 +128,29 @@ public class RedisWeatherDataCacheTests
     }
 
     [Fact]
-    public void GetMetadata_WhenNoRankings_ReturnsNull()
+    public async Task GetMetadataAsync_WhenNoRankings_ReturnsNull()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
 
         // Act
-        var result = cache.GetMetadata();
+        var result = await cache.GetMetadataAsync();
 
         // Assert
         result.ShouldBeNull();
     }
 
     [Fact]
-    public void GetMetadata_WithRankings_ReturnsMetadata()
+    public async Task GetMetadataAsync_WithRankings_ReturnsMetadata()
     {
         // Arrange
         using var cache = new RedisWeatherDataCache(_logger, null);
-        cache.SetRankings(CreateTestRankings());
-        cache.SetDistrictForecast("dhaka", CreateTestForecast("dhaka"));
-        cache.SetDistrictForecast("chittagong", CreateTestForecast("chittagong"));
+        await cache.SetRankingsAsync(CreateTestRankings());
+        await cache.SetDistrictForecastAsync("dhaka", CreateTestForecast("dhaka"));
+        await cache.SetDistrictForecastAsync("chittagong", CreateTestForecast("chittagong"));
 
         // Act
-        var result = cache.GetMetadata();
+        var result = await cache.GetMetadataAsync();
 
         // Assert
         result.ShouldNotBeNull();

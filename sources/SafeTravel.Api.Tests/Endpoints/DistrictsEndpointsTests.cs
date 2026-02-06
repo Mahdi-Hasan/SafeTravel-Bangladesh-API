@@ -39,7 +39,7 @@ public class DistrictsEndpointsTests : IClassFixture<SafeTravelApiFactory>
             GeneratedAt: DateTime.UtcNow.AddMinutes(-5),
             ExpiresAt: DateTime.UtcNow.AddMinutes(15));
 
-        _factory.MockCache.GetRankings().Returns(mockRankings);
+        _factory.MockCache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns(mockRankings);
 
         // Act
         var response = await _client.GetAsync("/api/v1/districts/top-10");
@@ -62,7 +62,7 @@ public class DistrictsEndpointsTests : IClassFixture<SafeTravelApiFactory>
             GeneratedAt: generatedAt,
             ExpiresAt: DateTime.UtcNow.AddMinutes(15));
 
-        _factory.MockCache.GetRankings().Returns(mockRankings);
+        _factory.MockCache.GetRankingsAsync(Arg.Any<CancellationToken>()).Returns(mockRankings);
 
         // Act
         var response = await _client.GetAsync("/api/v1/districts/top-10");

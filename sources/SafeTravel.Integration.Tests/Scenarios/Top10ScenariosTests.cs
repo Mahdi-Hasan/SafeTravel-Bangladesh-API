@@ -22,7 +22,7 @@ public class Top10ScenariosTests : IntegrationTestBase
         // Arrange - Pre-populate the cache and set up WireMock
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
         var rankings = TestDataBuilder.CreateCachedRankings();
-        cache.SetRankings(rankings);
+        await cache.SetRankingsAsync(rankings);
 
         Factory.WireMockServer.SetupSuccessfulForecast();
         Factory.WireMockServer.SetupSuccessfulAirQuality();
@@ -42,7 +42,7 @@ public class Top10ScenariosTests : IntegrationTestBase
         // Arrange
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
         var rankings = TestDataBuilder.CreateCachedRankings();
-        cache.SetRankings(rankings);
+        await cache.SetRankingsAsync(rankings);
 
         Factory.WireMockServer.SetupSuccessfulForecast();
         Factory.WireMockServer.SetupSuccessfulAirQuality();
@@ -61,7 +61,7 @@ public class Top10ScenariosTests : IntegrationTestBase
         // Arrange
         var cache = Factory.Services.GetRequiredService<IWeatherDataCache>();
         var rankings = TestDataBuilder.CreateCachedRankings();
-        cache.SetRankings(rankings);
+        await cache.SetRankingsAsync(rankings);
 
         Factory.WireMockServer.SetupSuccessfulForecast();
         Factory.WireMockServer.SetupSuccessfulAirQuality();

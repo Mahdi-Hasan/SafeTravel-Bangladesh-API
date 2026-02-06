@@ -20,46 +20,6 @@ public class TravelEndpointsTests : IClassFixture<SafeTravelApiFactory>
         _client = factory.CreateClient();
     }
 
-    [Fact(Skip = "Requires complex mock setup - validation tests cover endpoint functionality")]
-    public async Task GetTravelRecommendation_ShouldReturnOk_WhenValidRequest()
-    {
-        // Arrange
-        var travelDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(1));
-        var request = new TravelRecommendationRequest(
-            Latitude: 23.8103,
-            Longitude: 90.4125,
-            DestinationDistrict: "Sylhet",
-            TravelDate: travelDate);
-
-        var sylhet = District.Create("03", "Sylhet", 24.8949, 91.8687);
-        _factory.MockDistrictRepository.GetByName("Sylhet").Returns(sylhet);
-
-        var mockRankings = new CachedRankings(
-            Rankings: new List<RankedDistrict>
-            {
-                RankedDistrict.Create(1, sylhet, 22.0, 25.0)
-            },
-            GeneratedAt: DateTime.UtcNow.AddMinutes(-5),
-            ExpiresAt: DateTime.UtcNow.AddMinutes(15));
-
-        _factory.MockCache.GetRankings().Returns(mockRankings);
-        _factory.MockCache.GetDistrictForecast("03").Returns(new CachedDistrictForecast(
-            DistrictId: "03",
-            Forecasts: new List<WeatherSnapshot>
-            {
-                WeatherSnapshot.Create(travelDate, 22.0, 25.0)
-            },
-            GeneratedAt: DateTime.UtcNow));
-
-        // Act
-        var response = await _client.PostAsJsonAsync("/api/v1/travel/recommendation", request);
-
-        // Assert
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<TravelRecommendationResponse>();
-        result.ShouldNotBeNull();
-    }
-
     [Fact]
     public async Task GetTravelRecommendation_ShouldReturnBadRequest_WhenInvalidLatitude()
     {

@@ -36,7 +36,7 @@ public class HealthEndpointsTests : IClassFixture<SafeTravelApiFactory>
             IsHealthy: true,
             DistrictsCached: 64);
 
-        _factory.MockCache.GetMetadata().Returns(metadata);
+        _factory.MockCache.GetMetadataAsync(Arg.Any<CancellationToken>()).Returns(metadata);
 
         // Act
         var response = await _client.GetAsync("/health/ready");
@@ -49,7 +49,7 @@ public class HealthEndpointsTests : IClassFixture<SafeTravelApiFactory>
     public async Task ReadinessCheck_ShouldReturnServiceUnavailable_WhenCacheIsNull()
     {
         // Arrange
-        _factory.MockCache.GetMetadata().Returns((CacheMetadata?)null);
+        _factory.MockCache.GetMetadataAsync(Arg.Any<CancellationToken>()).Returns((CacheMetadata?)null);
 
         // Act
         var response = await _client.GetAsync("/health/ready");
@@ -67,7 +67,7 @@ public class HealthEndpointsTests : IClassFixture<SafeTravelApiFactory>
             IsHealthy: true,
             DistrictsCached: 64);
 
-        _factory.MockCache.GetMetadata().Returns(metadata);
+        _factory.MockCache.GetMetadataAsync(Arg.Any<CancellationToken>()).Returns(metadata);
 
         // Act
         var response = await _client.GetAsync("/health/ready");
