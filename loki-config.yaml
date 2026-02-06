@@ -5,7 +5,7 @@ server:
   grpc_listen_port: 9096
 
 common:
-  instance_addr: 127.0.0.1
+  instance_addr: 0.0.0.0
   path_prefix: /tmp/loki
   storage:
     filesystem:
@@ -15,6 +15,17 @@ common:
   ring:
     kvstore:
       store: inmemory
+
+ingester:
+  wal:
+    enabled: true
+    dir: /tmp/loki/wal
+  lifecycler:
+    address: 0.0.0.0
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
 
 query_range:
   results_cache:
@@ -32,3 +43,7 @@ schema_config:
       index:
         prefix: index_
         period: 24h
+
+compactor:
+  working_directory: /tmp/loki/compactor
+

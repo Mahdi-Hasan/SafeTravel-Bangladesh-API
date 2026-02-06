@@ -81,4 +81,23 @@ public class CoordinatesTests
         // Act & Assert
         coords.ToString().ShouldBe("(23.8103, 90.4125)");
     }
+
+    [Fact]
+    public void Deserialize_WithJsonConstructor_ShouldSucceed()
+    {
+        // Arrange
+        var json = "{\"latitude\": 23.8103, \"longitude\": 90.4125}";
+        var options = new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        // Act
+        var coordinates = System.Text.Json.JsonSerializer.Deserialize<Coordinates>(json, options);
+
+        // Assert
+        coordinates.ShouldNotBeNull();
+        coordinates.Latitude.ShouldBe(23.8103);
+        coordinates.Longitude.ShouldBe(90.4125);
+    }
 }

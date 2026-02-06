@@ -1,4 +1,22 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: safetravel-api
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Redis=redis:6379
+      - Loki__Url=http://loki:3100
+      - HangfireDashboard__Username=admin
+      - HangfireDashboard__Password=hangfire@123
+    depends_on:
+      - redis
+      - loki
+    restart: unless-stopped
+
   redis:
     image: redis:alpine
     container_name: safetravel-redis
@@ -23,6 +41,9 @@ services:
       - "3000:3000"
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - loki
     restart: unless-stopped

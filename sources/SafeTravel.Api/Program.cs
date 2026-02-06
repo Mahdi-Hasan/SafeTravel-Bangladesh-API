@@ -6,10 +6,12 @@ using SafeTravel.Application.DependencyInjection;
 using SafeTravel.Infrastructure.DependencyInjection;
 using Serilog;
 using Serilog.Events;
+using Serilog.Sinks.Grafana.Loki;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ===== Configure Serilog =====
+var lokiUrl = builder.Configuration["Loki:Url"] ?? "http://localhost:3100";
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
@@ -19,6 +21,11 @@ Log.Logger = new LoggerConfiguration()
     .Enrich.WithProperty("Application", "SafeTravel.Api")
     .Enrich.WithProperty("Environment", builder.Environment.EnvironmentName)
     .WriteTo.Console()
+    .WriteTo.GrafanaLoki(
+        lokiUrl,
+        labels: [new LokiLabel { Key = "app", Value = "safetravel-api" }],
+        batchPostingLimit: 10,
+        period: TimeSpan.FromSeconds(2))
     .CreateLogger();
 
 builder.Host.UseSerilog();

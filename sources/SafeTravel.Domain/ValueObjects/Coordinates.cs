@@ -1,10 +1,11 @@
-namespace SafeTravel.Domain.ValueObjects;
+using System.Text.Json.Serialization;
 
 public sealed record Coordinates
 {
     public double Latitude { get; }
     public double Longitude { get; }
 
+    [JsonConstructor]
     private Coordinates(double latitude, double longitude)
     {
         Latitude = latitude;

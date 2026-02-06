@@ -1,0 +1,23 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.git/
+**/.github/
+**/TestResults/
+
+# Test projects
+**/*.Tests/
+**/*.Tests.csproj
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# IDE
+.idea/
+*.user
+*.suo
+
+# Logs
+*.log

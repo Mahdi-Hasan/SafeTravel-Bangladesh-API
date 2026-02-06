@@ -68,9 +68,11 @@ Compares your **current location** with a **destination district** and recommend
 git clone https://github.com/Mahdi-Hasan/SafeTravel-Bangladesh-API
 cd SafeTravel-Bangladesh-API
 
-# Run (requires Redis)
+# Run all services (API, Redis, Loki, Grafana)
 docker-compose up -d
-dotnet run --project src/SafeTravel.Api
+
+# Or build and run
+docker-compose up -d --build
 ```
 
 **Swagger UI**: `http://localhost:5000/swagger`
