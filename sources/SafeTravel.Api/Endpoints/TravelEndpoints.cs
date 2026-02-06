@@ -24,7 +24,8 @@ public static class TravelEndpoints
             .Produces<TravelRecommendationResponse>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status404NotFound)
-            .Produces(StatusCodes.Status503ServiceUnavailable);
+            .Produces(StatusCodes.Status503ServiceUnavailable)
+            .CacheOutput("TravelRecommendationPolicy");
 
         return app;
     }

@@ -21,7 +21,8 @@ public static class HealthEndpoints
             .WithSummary("Liveness probe")
             .WithDescription("Returns 200 OK if the application is running.")
             .Produces(StatusCodes.Status200OK)
-            .ExcludeFromDescription();
+            .ExcludeFromDescription()
+            .CacheOutput("HealthPolicy");
 
         group.MapGet("/ready", ReadinessCheck)
             .WithName("ReadinessCheck")
@@ -29,7 +30,8 @@ public static class HealthEndpoints
             .WithDescription("Returns 200 OK if the application is ready to serve requests (Redis available and cache populated).")
             .Produces(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status503ServiceUnavailable)
-            .ExcludeFromDescription();
+            .ExcludeFromDescription()
+            .CacheOutput("HealthPolicy");
 
         return app;
     }

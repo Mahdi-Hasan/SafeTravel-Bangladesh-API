@@ -22,7 +22,8 @@ public static class DistrictsEndpoints
             .WithSummary("Get the top 10 coolest and cleanest districts")
             .WithDescription("Returns the top 10 districts based on 7-day forecast of temperature and air quality (PM2.5).")
             .Produces<Top10DistrictsResponse>(StatusCodes.Status200OK)
-            .Produces(StatusCodes.Status503ServiceUnavailable);
+            .Produces(StatusCodes.Status503ServiceUnavailable)
+            .CacheOutput("Top10Policy");
 
         return app;
     }

@@ -79,6 +79,29 @@ services.AddSwaggerGen(options =>
 // Add ProblemDetails
 services.AddProblemDetails();
 
+// Add Output Caching (disable in test environment to avoid caching mocked responses)
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    services.AddOutputCache(options =>
+    {
+        // Top 10 Districts - cache for 5 minutes (background job runs every 10 min)
+        options.AddPolicy("Top10Policy", builder => builder
+            .Expire(TimeSpan.FromMinutes(5))
+            .Tag("districts"));
+
+        // Travel Recommendations - cache for 2 minutes, vary by query string
+        options.AddPolicy("TravelRecommendationPolicy", builder => builder
+            .Expire(TimeSpan.FromMinutes(2))
+            .SetVaryByQuery("*")
+            .Tag("travel"));
+
+        // Health checks - cache for 30 seconds
+        options.AddPolicy("HealthPolicy", builder => builder
+            .Expire(TimeSpan.FromSeconds(30))
+            .Tag("health"));
+    });
+}
+
 var app = builder.Build();
 
 // ===== Configure Middleware Pipeline =====
@@ -86,6 +109,12 @@ app.UseExceptionHandling();
 app.UseRequestLogging();
 
 app.UseResponseCompression();
+
+// Enable Output Caching (disable in test environment)
+if (!app.Environment.IsEnvironment("Testing"))
+{
+    app.UseOutputCache();
+}
 
 // Enable Swagger in Development
 if (app.Environment.IsDevelopment())
