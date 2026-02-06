@@ -42,6 +42,7 @@ Compares your **current location** with a **destination district** and recommend
 | Background Jobs | Hangfire (10-min refresh cycle)          |
 | External API    | Open-Meteo (Weather & Air Quality)       |
 | Logging         | Serilog + Grafana/Loki                   |
+| Testing         | xUnit, NSubstitute, Shouldly, WireMock   |
 
 ## API Endpoints
 
@@ -51,16 +52,24 @@ Compares your **current location** with a **destination district** and recommend
 | POST   | `/api/v1/travel/recommendation` | Travel recommendation for destination |
 | GET    | `/health/live`                  | Liveness probe                        |
 | GET    | `/health/ready`                 | Readiness probe (Redis + sync status) |
+| GET    | `/hangfire`                     | Background jobs dashboard             |
 
-## Quick Start
+## Getting Started
+
+### Prerequisites
+
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
+- [Docker](https://www.docker.com/) (for Redis, Grafana, Loki)
+
+### Running Locally
 
 ```bash
-# Clone
-git clone <repository-url>
+# Clone the repository
+git clone https://github.com/Mahdi-Hasan/SafeTravel-Bangladesh-API
 cd SafeTravel-Bangladesh-API
 
 # Run (requires Redis)
-docker-compose up -d redis
+docker-compose up -d
 dotnet run --project src/SafeTravel.Api
 ```
 
@@ -69,29 +78,6 @@ dotnet run --project src/SafeTravel.Api
 ## Documentation
 
 - [Technical Design Document](docs/technical_design_document.md)
-
-## Development
-
-### Branching Strategy
-
-We follow **Trunk-Based Development**:
-
-- **Main branch**: `master`
-- Short-lived feature branches merged quickly via PR
-- All commits must pass CI before merge
-
-### Current Status
-
-| Phase | Description | Status |
-|-------|-------------|--------|
-| Phase 1 | Domain Layer | ✅ Complete |
-| Phase 2 | Application Layer | ✅ Complete |
-| Phase 3 | Infrastructure Layer | ✅ Complete |
-| Phase 4 | API Layer & Integration | ✅ Complete |
-| Phase 5 | Background Jobs | 🔜 Pending |
-| Phase 6 | Integration & E2E Testing | 🔜 Pending |
-
-**Latest:** Phase 4 complete with all endpoints, middleware, Swagger, Serilog logging, and integration tests (143 tests passing).
 
 ## License
 
