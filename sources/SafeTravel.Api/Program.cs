@@ -1,5 +1,6 @@
 using Hangfire;
 using SafeTravel.Api.Endpoints;
+using SafeTravel.Api.Filters;
 using SafeTravel.Api.Middleware;
 using SafeTravel.Application.DependencyInjection;
 using SafeTravel.Infrastructure.DependencyInjection;
@@ -93,12 +94,17 @@ app.MapDistrictsEndpoints();
 app.MapTravelEndpoints();
 app.MapHealthEndpoints();
 
-// Hangfire Dashboard (secured in production)
+// Hangfire Dashboard (secured with Basic Auth)
+var hangfireConfig = app.Configuration.GetSection("HangfireDashboard");
+var dashboardAuth = new HangfireDashboardAuthFilter(
+    hangfireConfig["Username"] ?? "admin",
+    hangfireConfig["Password"] ?? "changeme");
+
 app.MapHangfireDashboard("/hangfire", new DashboardOptions
 {
     Authorization = app.Environment.IsDevelopment()
         ? []
-        : [new HangfireDashboardAuthorizationFilter()]
+        : [dashboardAuth]
 });
 
 // ===== Configure Recurring Jobs =====
@@ -110,16 +116,3 @@ Log.Information("SafeTravel.Api stopped.");
 
 // Make Program class accessible for WebApplicationFactory in tests
 public partial class Program { }
-
-/// <summary>
-/// Simple authorization filter for Hangfire dashboard in production.
-/// </summary>
-public class HangfireDashboardAuthorizationFilter : Hangfire.Dashboard.IDashboardAuthorizationFilter
-{
-    public bool Authorize(Hangfire.Dashboard.DashboardContext context)
-    {
-        // TODO: Implement proper authorization (e.g., API key, JWT, etc.)
-        // For now, allow all authenticated requests
-        return true;
-    }
-}
