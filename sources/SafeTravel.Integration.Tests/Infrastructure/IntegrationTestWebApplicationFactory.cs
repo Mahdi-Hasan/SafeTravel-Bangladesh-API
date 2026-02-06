@@ -17,7 +17,7 @@ namespace SafeTravel.Integration.Tests.Infrastructure;
 /// </summary>
 public class IntegrationTestWebApplicationFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly RedisContainer _redisContainer = new RedisBuilder(image: "redis:7-alpine")
+    private readonly RedisContainer _redisContainer = new RedisBuilder(image: "redis:8.4-alpine")
         .Build();
 
     public WireMockServer WireMockServer { get; private set; } = null!;

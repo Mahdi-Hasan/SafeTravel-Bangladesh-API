@@ -18,14 +18,14 @@ services:
     restart: unless-stopped
 
   redis:
-    image: redis:alpine
+    image: redis:8.4-alpine
     container_name: safetravel-redis
     ports:
       - "6379:6379"
     restart: unless-stopped
 
   loki:
-    image: grafana/loki:3.0.0
+    image: grafana/loki:3.6.4
     container_name: safetravel-loki
     ports:
       - "3100:3100"
@@ -35,7 +35,7 @@ services:
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:12.3.2
     container_name: safetravel-grafana
     ports:
       - "3000:3000"
