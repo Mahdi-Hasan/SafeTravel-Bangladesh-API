@@ -20,8 +20,8 @@ public static class HangfireServiceRegistration
         this IServiceCollection services,
         string? redisConnectionString = null)
     {
-        // Register the refresh job
-        services.AddScoped<WeatherDataRefreshJob>();
+        // Register the sync job
+        services.AddScoped<WeatherDataSyncJob>();
 
         // Configure Hangfire storage
         if (!string.IsNullOrWhiteSpace(redisConnectionString))
@@ -70,9 +70,9 @@ public static class HangfireServiceRegistration
     /// </summary>
     public static void ConfigureRecurringJobs()
     {
-        // Weather data refresh every 10 minutes
-        RecurringJob.AddOrUpdate<WeatherDataRefreshJob>(
-            "weather-data-refresh",
+        // Weather data sync every 10 minutes
+        RecurringJob.AddOrUpdate<WeatherDataSyncJob>(
+            "weather-data-sync",
             job => job.ExecuteAsync(CancellationToken.None),
             "*/10 * * * *", // Every 10 minutes
             new RecurringJobOptions
