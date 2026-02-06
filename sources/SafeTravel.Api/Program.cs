@@ -114,5 +114,4 @@ Log.Information("Starting SafeTravel.Api...");
 app.Run();
 Log.Information("SafeTravel.Api stopped.");
 
-// Make Program class accessible for WebApplicationFactory in tests
-public partial class Program { }
+
