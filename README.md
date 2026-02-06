@@ -84,7 +84,7 @@ This project demonstrates a **production-grade development lifecycle**, from req
 ### Phase 1: Requirements Analysis & System Design
 
 #### Requirements Clarification (v0.1)
-Before writing a single line of code, I created an [initial requirements clarification document](docs/design/requirements_clarification.md) to:
+Before writing a single line of code, I created an [initial requirements clarification document](docs/requirements_clarification.md) to:
 - **Identify ambiguities** in the original specification (e.g., "7-day forecast" interpretation, ranking tie-breaker logic)
 - **Document key assumptions** (temperature metric, data freshness constraints, error handling strategies)
 - **Propose v1 system design** with architecture patterns (Clean Architecture + CQRS)
