@@ -1,12 +1,18 @@
 <Solution>
-  <Project Path="SafeTravel.Domain/SafeTravel.Domain.csproj" />
-  <Project Path="SafeTravel.Domain.Tests/SafeTravel.Domain.Tests.csproj" />
-  <Project Path="SafeTravel.Application/SafeTravel.Application.csproj" />
-  <Project Path="SafeTravel.Application.Tests/SafeTravel.Application.Tests.csproj" />
-  <Project Path="SafeTravel.Infrastructure/SafeTravel.Infrastructure.csproj" />
-  <Project Path="SafeTravel.Infrastructure.Tests/SafeTravel.Infrastructure.Tests.csproj" />
-  <Project Path="SafeTravel.Api/SafeTravel.Api.csproj" />
-  <Project Path="SafeTravel.Api.Tests/SafeTravel.Api.Tests.csproj" />
-  <Project Path="SafeTravel.Integration.Tests/SafeTravel.Integration.Tests.csproj" />
+  <Folder Name="/Core/">
+    <Project Path="SafeTravel.Domain/SafeTravel.Domain.csproj" />
+    <Project Path="SafeTravel.Application/SafeTravel.Application.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="SafeTravel.Infrastructure/SafeTravel.Infrastructure.csproj" />
+    <Project Path="SafeTravel.Api/SafeTravel.Api.csproj" />
+  </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="SafeTravel.Domain.Tests/SafeTravel.Domain.Tests.csproj" />
+    <Project Path="SafeTravel.Application.Tests/SafeTravel.Application.Tests.csproj" />
+    <Project Path="SafeTravel.Infrastructure.Tests/SafeTravel.Infrastructure.Tests.csproj" />
+    <Project Path="SafeTravel.Api.Tests/SafeTravel.Api.Tests.csproj" />
+    <Project Path="SafeTravel.Integration.Tests/SafeTravel.Integration.Tests.csproj" />
+  </Folder>
 </Solution>
 

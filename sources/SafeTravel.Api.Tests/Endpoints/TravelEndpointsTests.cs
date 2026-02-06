@@ -3,12 +3,9 @@ using System.Net.Http.Json;
 using NSubstitute;
 using SafeTravel.Application.DTOs;
 using SafeTravel.Domain.Entities;
-using SafeTravel.Domain.Exceptions;
 using SafeTravel.Domain.Interfaces;
 using SafeTravel.Domain.Models;
-using SafeTravel.Domain.ValueObjects;
 using Shouldly;
-using Xunit;
 
 namespace SafeTravel.Api.Tests.Endpoints;
 
